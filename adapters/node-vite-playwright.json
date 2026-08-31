@@ -1,0 +1,29 @@
+{
+  "name": "node-vite-playwright",
+  "detect": [
+    "package.json"
+  ],
+  "device": null,
+  "build": "npm run build",
+  "deploy": null,
+  "e2e": {
+    "dir_default": "e2e",
+    "file_globs": [
+      "*.spec.ts",
+      "*.spec.js"
+    ],
+    "command": "npx playwright test {E2E_PATH} {TAG_OPT} --reporter=junit",
+    "tag_option": "--grep={TAGS}",
+    "tag_scan": {
+      "kind": "regex",
+      "pattern": "@([A-Za-z0-9_]+)"
+    },
+    "report_format": "junit-xml",
+    "artifact_globs": [
+      "**/*.png"
+    ]
+  },
+  "env": {},
+  "env_path_prepend": [],
+  "logs": null
+}

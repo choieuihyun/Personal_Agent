@@ -1,0 +1,12 @@
+.DS_Store
+*.bak
+*.bak.*
+__pycache__/
+*.pyc
+
+# 실행 상태는 대상 프로젝트에서 생기는 것이지 여기 들어오지 않는다
+state/
+sessions/
+
+# 금지어 목록. 이 안에 회사 식별자가 들어가므로 커밋하지 않는다 (.denylist.example 참고)
+.denylist

@@ -1,0 +1,1197 @@
+<title>하네스 해부도</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#F6F7F8; --surface:#FFFFFF; --sunk:#EDEFF2;
+  --ink:#13171C; --muted:#5B6570; --faint:#8B95A1;
+  --line:#DCE1E6; --rule:#C6CDD5;
+  --det:#0E6B6B;       /* 결정적 셸 단계. 토큰 0 */
+  --det-bg:#E2F0EF;
+  --llm:#A0601B;       /* LLM 에이전트 단계 */
+  --llm-bg:#F6EBDC;
+  --pass:#2C7A50; --stop:#A93B3B;
+  --stop-bg:#F6E3E3;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#101317; --surface:#171B21; --sunk:#1D222A;
+    --ink:#E6EAEF; --muted:#98A2AE; --faint:#6D7783;
+    --line:#272D35; --rule:#39414B;
+    --det:#5FBDB5; --det-bg:#12302F;
+    --llm:#D9A05B; --llm-bg:#33261488;
+    --pass:#6FBE8C; --stop:#E08585; --stop-bg:#3A2222;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101317; --surface:#171B21; --sunk:#1D222A;
+  --ink:#E6EAEF; --muted:#98A2AE; --faint:#6D7783;
+  --line:#272D35; --rule:#39414B;
+  --det:#5FBDB5; --det-bg:#12302F;
+  --llm:#D9A05B; --llm-bg:#33261488;
+  --pass:#6FBE8C; --stop:#E08585; --stop-bg:#3A2222;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+  font-size:16px; line-height:1.72; margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+code,pre,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* ---------- 골격 ---------- */
+.wrap{display:grid; grid-template-columns:224px minmax(0,1fr); gap:0; max-width:1240px; margin:0 auto}
+nav.toc{
+  position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
+  padding:40px 24px 40px 28px; border-right:1px solid var(--line);
+}
+main{padding:40px 48px 120px; min-width:0}
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr)}
+  nav.toc{position:static; height:auto; border-right:0; border-bottom:1px solid var(--line); padding:24px}
+  main{padding:28px 20px 80px}
+}
+
+/* ---------- 목차 ---------- */
+.toc-label{
+  font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--faint); margin:0 0 14px;
+}
+.toc ol{list-style:none; margin:0; padding:0; counter-reset:t}
+.toc li{counter-increment:t; margin:0 0 2px}
+.toc a{
+  display:flex; gap:9px; text-decoration:none; color:var(--muted);
+  font-size:13.5px; line-height:1.45; padding:4px 6px; border-radius:3px;
+  border-left:2px solid transparent; margin-left:-8px;
+}
+.toc a::before{
+  content:counter(t,decimal-leading-zero);
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--faint);
+  padding-top:3px; flex:none;
+}
+.toc a:hover{color:var(--ink); background:var(--sunk)}
+.toc a:focus-visible{outline:2px solid var(--det); outline-offset:1px}
+
+/* ---------- 표제 ---------- */
+header.masthead{border-bottom:2px solid var(--ink); padding-bottom:24px; margin-bottom:8px}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--det); margin:0 0 12px;
+}
+h1{
+  font-size:clamp(30px,4.6vw,44px); line-height:1.12; font-weight:700;
+  letter-spacing:-.022em; margin:0 0 14px; text-wrap:balance;
+}
+.standfirst{font-size:17px; color:var(--muted); margin:0; max-width:62ch}
+.meta{
+  display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:20px;
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--faint);
+}
+.meta b{color:var(--muted); font-weight:500}
+
+section{padding-top:52px; scroll-margin-top:16px}
+h2{
+  font-size:23px; font-weight:600; letter-spacing:-.014em; margin:0 0 6px;
+  padding-bottom:9px; border-bottom:1px solid var(--rule); text-wrap:balance;
+}
+h2 .num{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--det);
+  margin-right:10px; font-weight:500;
+}
+h3{font-size:16px; font-weight:600; margin:34px 0 8px; letter-spacing:-.008em}
+p{margin:0 0 14px; max-width:68ch}
+.lede{color:var(--muted); margin-top:12px; max-width:68ch}
+ul,ol{max-width:68ch; padding-left:20px; margin:0 0 14px}
+li{margin-bottom:5px}
+strong{font-weight:600}
+a{color:var(--det)}
+
+code:not(pre code){
+  background:var(--sunk); padding:.1em .38em; border-radius:3px;
+  font-size:.875em; border:1px solid var(--line);
+}
+
+/* ---------- 도판 ---------- */
+figure{
+  margin:26px 0; background:var(--surface);
+  border:1px solid var(--line); border-radius:2px; overflow:hidden;
+}
+.fig-body{padding:22px 20px 12px; overflow-x:auto}
+figure svg{display:block; max-width:100%; height:auto; margin:0 auto; color:var(--ink)}
+figcaption{
+  border-top:1px solid var(--line); padding:10px 20px;
+  font-size:12.5px; color:var(--muted); background:var(--sunk);
+}
+figcaption b{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); font-weight:500; margin-right:9px;
+}
+
+/* ---------- 범례 ---------- */
+.legend{display:flex; flex-wrap:wrap; gap:8px 20px; margin:0 0 22px; padding:12px 14px;
+  background:var(--surface); border:1px solid var(--line); border-radius:2px;
+  font-size:12.5px; color:var(--muted)}
+.legend span{display:flex; align-items:center; gap:7px}
+.chip{width:22px; height:11px; border-radius:2px; flex:none; border:1px solid}
+.chip.det{background:var(--det-bg); border-color:var(--det)}
+.chip.llm{background:var(--llm-bg); border-color:var(--llm)}
+.chip.state{background:var(--sunk); border-color:var(--rule)}
+
+/* ---------- 표 ---------- */
+.tw{overflow-x:auto; margin:20px 0; border:1px solid var(--line); background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:13.5px}
+th,td{text-align:left; padding:9px 13px; border-bottom:1px solid var(--line); vertical-align:top}
+th{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); font-weight:500;
+  background:var(--sunk); white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.mono,th.mono{font-family:"IBM Plex Mono",monospace; font-size:12.5px}
+.num-col{font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+
+/* ---------- 태그 ---------- */
+.tag{
+  display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+  padding:1px 6px; border-radius:2px; border:1px solid; white-space:nowrap; line-height:1.6;
+}
+.t-read{color:var(--det); border-color:var(--det); background:var(--det-bg)}
+.t-write{color:var(--llm); border-color:var(--llm); background:var(--llm-bg)}
+.t-stop{color:var(--stop); border-color:var(--stop); background:var(--stop-bg)}
+.t-none{color:var(--faint); border-color:var(--line); background:var(--sunk)}
+
+/* ---------- 코드 ---------- */
+pre{
+  background:var(--surface); border:1px solid var(--line); border-left:2px solid var(--det);
+  padding:14px 16px; overflow-x:auto; font-size:12.5px; line-height:1.62;
+  margin:18px 0; border-radius:0 2px 2px 0;
+}
+
+/* ---------- 강조 박스 ---------- */
+.note{
+  border-left:2px solid var(--rule); padding:2px 0 2px 16px; margin:20px 0;
+  color:var(--muted); font-size:14.5px; max-width:66ch;
+}
+.note.warn{border-left-color:var(--stop)}
+.note.warn strong{color:var(--stop)}
+.note-h{
+  display:block; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+  letter-spacing:.11em; text-transform:uppercase; color:var(--faint); margin-bottom:5px;
+}
+
+/* ---------- 통계 ---------- */
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:1px;
+  background:var(--line); border:1px solid var(--line); margin:22px 0}
+.stat{background:var(--surface); padding:13px 15px}
+.stat dt{
+  font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); margin:0 0 5px;
+}
+.stat dd{margin:0; font-size:21px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.stat dd small{font-size:12px; font-weight:400; color:var(--muted); margin-left:3px}
+
+footer{margin-top:80px; padding-top:22px; border-top:1px solid var(--rule);
+  font-size:12.5px; color:var(--faint); max-width:68ch}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="wrap">
+<nav class="toc">
+  <p class="toc-label">목차</p>
+  <ol>
+    <li><a href="#loop">전체 루프</a></li>
+    <li><a href="#layers">3층 구조</a></li>
+    <li><a href="#pipelines">파이프라인 3종</a></li>
+    <li><a href="#fix">/fix 해부</a></li>
+    <li><a href="#agents">에이전트 13개</a></li>
+    <li><a href="#state">상태기계</a></li>
+    <li><a href="#gate">런타임 게이트</a></li>
+    <li><a href="#stop">멈추는 법</a></li>
+    <li><a href="#domains">도메인 매핑</a></li>
+    <li><a href="#port">이식 구조</a></li>
+    <li><a href="#now">현재 상태</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="masthead">
+  <p class="eyebrow">Personal Agent Harness</p>
+  <h1>하네스 해부도</h1>
+  <p class="standfirst">
+    슬래시 커맨드 하나가 서브에이전트 여러 개를 몰아 탐색부터 실기기 검증까지 돌린다.
+    그 골격이 어떻게 생겼고, 어디서 멈추며, 왜 다른 프로젝트로 옮길 수 있는지에 대한 해부도.
+  </p>
+  <div class="meta">
+    <span><b>기준</b> 2026-08-31 실측</span>
+    <span><b>출처</b> 안드로이드 프로젝트에서 반입 후 일반화</span>
+    <span><b>저장소</b> choieuihyun/Personal_Agent</span>
+  </div>
+</header>
+
+<!-- ═══════════════ 1 ═══════════════ -->
+<section id="loop">
+<h2><span class="num">01</span>전체 루프</h2>
+<p class="lede">
+  파이프라인은 한 줄이다. 문제를 받아 파일 범위를 정하고, 고치고, 빌드하고, 실기기에서 돌려보고,
+  깨지면 원인을 분류해 되돌아간다. 이 루프가 스스로 멈출 줄 아는 것이 핵심이다.
+</p>
+
+<div class="legend">
+  <span><i class="chip llm"></i> LLM 에이전트 단계 &mdash; 비결정적, 토큰 소모</span>
+  <span><i class="chip det"></i> 결정적 셸 단계 &mdash; LLM 미개입, 토큰 0</span>
+  <span><i class="chip state"></i> 상태 파일</span>
+</div>
+
+<figure>
+<div class="fig-body">
+<svg viewBox="0 0 940 300" role="img" aria-label="인테이크에서 시작해 탐색, 수정, 빌드, 런타임 게이트를 거쳐 분류로 이어지고, 분류 결과가 수정 단계로 되돌아가거나 사람 판단으로 빠지는 순환 구조">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+    </marker>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#A93B3B"/>
+    </marker>
+  </defs>
+
+  <!-- 본류 박스 -->
+  <g font-family="IBM Plex Mono, monospace" font-size="12">
+    <rect x="12"  y="70" width="112" height="52" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="68"  y="90"  text-anchor="middle" fill="var(--ink)" font-size="12.5">인테이크</text>
+    <text x="68"  y="107" text-anchor="middle" fill="var(--muted)" font-size="10.5">3 모드</text>
+
+    <rect x="164" y="70" width="112" height="52" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="220" y="90"  text-anchor="middle" fill="var(--ink)" font-size="12.5">explorer</text>
+    <text x="220" y="107" text-anchor="middle" fill="var(--muted)" font-size="10.5">읽기만</text>
+
+    <rect x="316" y="70" width="112" height="52" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="372" y="90"  text-anchor="middle" fill="var(--ink)" font-size="12.5">implementer</text>
+    <text x="372" y="107" text-anchor="middle" fill="var(--muted)" font-size="10.5">허가 파일만</text>
+
+    <rect x="468" y="70" width="112" height="52" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="524" y="90"  text-anchor="middle" fill="var(--ink)" font-size="12.5">builder</text>
+    <text x="524" y="107" text-anchor="middle" fill="var(--muted)" font-size="10.5">수정 안 함</text>
+
+    <rect x="620" y="70" width="112" height="52" rx="2" fill="var(--det-bg)" stroke="var(--det)"/>
+    <text x="676" y="90"  text-anchor="middle" fill="var(--ink)" font-size="12.5">런타임 게이트</text>
+    <text x="676" y="107" text-anchor="middle" fill="var(--muted)" font-size="10.5">셸 · 토큰 0</text>
+
+    <rect x="772" y="70" width="112" height="52" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="828" y="90"  text-anchor="middle" fill="var(--ink)" font-size="12.5">triage</text>
+    <text x="828" y="107" text-anchor="middle" fill="var(--muted)" font-size="10.5">분류만</text>
+  </g>
+
+  <!-- 본류 화살표 -->
+  <g stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#a1)">
+    <line x1="124" y1="96" x2="158" y2="96"/>
+    <line x1="276" y1="96" x2="310" y2="96"/>
+    <line x1="428" y1="96" x2="462" y2="96"/>
+    <line x1="580" y1="96" x2="614" y2="96"/>
+    <line x1="732" y1="96" x2="766" y2="96"/>
+  </g>
+  <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--faint)" text-anchor="middle">
+    <text x="141" y="88">문제</text>
+    <text x="293" y="88">범위</text>
+    <text x="445" y="88">패치</text>
+    <text x="597" y="88">통과</text>
+    <text x="749" y="88">실패</text>
+  </g>
+
+  <!-- 되돌림 -->
+  <path d="M828 122 L828 176 L372 176 L372 128" stroke="#A93B3B" stroke-width="1.4" fill="none" marker-end="url(#a2)"/>
+  <text x="600" y="192" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#A93B3B">REAL_BUG &rarr; 재수정 (attempt_count++)</text>
+
+  <!-- 빌드 실패 되돌림 -->
+  <path d="M524 70 L524 44 L372 44 L372 64" stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#a1)" stroke-dasharray="4 3"/>
+  <text x="448" y="36" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--muted)">빌드 실패 &rarr; 재수정</text>
+
+  <!-- 상태 파일 -->
+  <rect x="316" y="228" width="308" height="44" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+  <text x="470" y="246" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--ink)">orchestrator.json</text>
+  <text x="470" y="263" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="10.5" fill="var(--muted)">유일한 권위 &mdash; 모든 단계가 여기를 읽고 쓴다</text>
+  <g stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 3">
+    <line x1="220" y1="122" x2="330" y2="228"/>
+    <line x1="372" y1="128" x2="400" y2="228"/>
+    <line x1="524" y1="122" x2="500" y2="228"/>
+    <line x1="676" y1="122" x2="580" y2="228"/>
+    <line x1="828" y1="122" x2="620" y2="230"/>
+  </g>
+</svg>
+</div>
+<figcaption><b>도판 1</b>루프의 방향은 하나지만 되돌아오는 경로가 둘이다 &mdash; 빌드 실패와 런타임 실패. 둘 다 <code>implementer</code>로 돌아가며 같은 시도 상한을 공유한다.</figcaption>
+</figure>
+
+<p>
+  주목할 것은 <strong>게이트만 색이 다르다</strong>는 점이다. 다른 단계는 전부 LLM이 판단하지만
+  런타임 게이트는 셸 스크립트다. 빌드하고 설치하고 테스트를 재생하고 결과를 JSON으로 떨어뜨린다.
+  판단이 없으니 매번 같은 결과가 나오고, 토큰을 쓰지 않는다.
+  비결정적인 것을 결정적인 것으로 붙잡는 자리가 여기다.
+</p>
+</section>
+
+<!-- ═══════════════ 2 ═══════════════ -->
+<section id="layers">
+<h2><span class="num">02</span>3층 구조</h2>
+<p class="lede">
+  무엇이 프로젝트를 옮겨도 그대로이고, 무엇이 매번 새로 채워지는가. 이 경계가 이식 가능성의 전부다.
+</p>
+
+<figure>
+<div class="fig-body">
+<svg viewBox="0 0 900 358" role="img" aria-label="로직 층은 그대로 복사되고, 입력 층은 프로젝트마다 채우며, 지식 층은 그 프로젝트에 남는다는 3층 구조">
+  <defs>
+    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <!-- 로직 -->
+  <rect x="16" y="16" width="868" height="98" rx="2" fill="var(--det-bg)" stroke="var(--det)" stroke-width="1.4"/>
+  <text x="34" y="42" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.4" fill="var(--det)">LOGIC</text>
+  <text x="34" y="64" font-family="IBM Plex Sans KR, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">로직 &mdash; 그대로 복사된다</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--muted)">
+    <text x="34" y="85">상태기계 · 역할별 도구제한 · 컨텍스트 격리 · 게이트 루프</text>
+    <text x="34" y="102">실패 4분류 · 무의미 diff 검사 · 종료값 정의 · 경로→도메인 알고리즘</text>
+  </g>
+  <text x="866" y="42" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--det)">core/</text>
+
+  <!-- 입력 -->
+  <rect x="16" y="132" width="868" height="98" rx="2" fill="var(--llm-bg)" stroke="var(--llm)" stroke-width="1.4"/>
+  <text x="34" y="158" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.4" fill="var(--llm)">INPUT</text>
+  <text x="34" y="180" font-family="IBM Plex Sans KR, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">입력 &mdash; 프로젝트마다 채운다</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--muted)">
+    <text x="34" y="201">도메인 목록 · 평면 접두사 · 공유 디렉터리 · 금지 글롭</text>
+    <text x="34" y="218">build / deploy / smoke / e2e 명령 · 크래시 provider · appId</text>
+  </g>
+  <text x="866" y="158" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--llm)">project.json · adapters/</text>
+
+  <!-- 지식 -->
+  <rect x="16" y="248" width="868" height="94" rx="2" fill="var(--sunk)" stroke="var(--rule)" stroke-width="1.4"/>
+  <text x="34" y="274" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.4" fill="var(--faint)">KNOWLEDGE</text>
+  <text x="34" y="296" font-family="IBM Plex Sans KR, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">지식 &mdash; 그 프로젝트에 남는다</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--muted)">
+    <text x="34" y="317">CLAUDE.md 도메인 규칙 · 아키텍처 문서 · 회귀 테스트 flow</text>
+    <text x="34" y="334">프로토콜 구조 · 화면 설명 · 실계정 · 사내 주소</text>
+  </g>
+  <text x="866" y="274" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--faint)">이식 대상 아님</text>
+</svg>
+</div>
+<figcaption><b>도판 2</b>층을 가르는 질문은 하나다 &mdash; &ldquo;프로젝트 이름을 지우면 말이 되는가.&rdquo; 된다면 로직, 값만 다르면 입력, 안 되면 지식이다.</figcaption>
+</figure>
+
+<div class="note">
+  <span class="note-h">왜 이 경계가 중요한가</span>
+  가운데 층은 오랫동안 &ldquo;결합&rdquo;으로 오해받는다. 실제로는 <strong>빈칸</strong>이다.
+  도메인 목록 22개는 특정 제품 지식이지만, 그걸 읽는 알고리즘(경로 파싱 &rarr; 폴더 우선 &rarr;
+  긴 접두사 우선 &rarr; 모르면 전체 회귀)은 어느 프로젝트에서나 같다.
+  빈칸을 코드 밖으로 빼는 순간 위층이 통째로 이식 가능해진다.
+</div>
+</section>
+
+<!-- ═══════════════ 3 ═══════════════ -->
+<section id="pipelines">
+<h2><span class="num">03</span>파이프라인 3종</h2>
+<p class="lede">
+  셋은 같은 몸통을 쓴다. 갈리는 곳은 <strong>몸통에 들어가기 전</strong>과
+  <strong>검증 테스트를 어디서 가져오는가</strong> 두 군데뿐이다.
+</p>
+
+<figure>
+<div class="fig-body">
+<svg viewBox="0 0 900 356" role="img" aria-label="fix, modernize, feature 세 파이프라인이 공통 몸통을 공유하며 앞단과 테스트 출처에서만 갈라지는 비교도">
+  <defs>
+    <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <!-- 공통 몸통 배경 -->
+  <rect x="330" y="8" width="290" height="340" fill="var(--det-bg)" opacity="0.42"/>
+  <text x="475" y="26" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.2" fill="var(--det)">공통 몸통</text>
+  <line x1="330" y1="34" x2="620" y2="34" stroke="var(--det)" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g font-family="IBM Plex Mono, monospace" font-size="11">
+  <!-- ── fix ── -->
+  <text x="14" y="76" font-family="IBM Plex Sans KR, sans-serif" font-size="13.5" font-weight="600" fill="var(--ink)">/fix</text>
+  <text x="14" y="93" font-size="10" fill="var(--muted)">버그 · 에러 · 크래시</text>
+
+  <rect x="126" y="58" width="186" height="46" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+  <text x="219" y="78" text-anchor="middle" font-size="11.5" fill="var(--ink)">인테이크 3모드</text>
+  <text x="219" y="93" text-anchor="middle" font-size="9.5" fill="var(--muted)">manual / build / crash</text>
+
+  <rect x="340" y="58" width="270" height="46" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+  <text x="475" y="78" text-anchor="middle" font-size="11.5" fill="var(--ink)">explorer &rarr; implementer &rarr; builder</text>
+  <text x="475" y="93" text-anchor="middle" font-size="9.5" fill="var(--muted)">동일</text>
+
+  <rect x="638" y="58" width="248" height="46" rx="2" fill="var(--det-bg)" stroke="var(--det)"/>
+  <text x="762" y="78" text-anchor="middle" font-size="11.5" fill="var(--ink)">게이트: 있는 flow 재사용</text>
+  <text x="762" y="93" text-anchor="middle" font-size="9.5" fill="var(--muted)">없으면 NO_FLOW 통과 (비-UI)</text>
+
+  <!-- ── modernize ── -->
+  <text x="14" y="182" font-family="IBM Plex Sans KR, sans-serif" font-size="13.5" font-weight="600" fill="var(--ink)">/modernize</text>
+  <text x="14" y="199" font-size="10" fill="var(--muted)">마이그레이션</text>
+
+  <rect x="126" y="164" width="186" height="46" rx="2" fill="#A93B3B22" stroke="#A93B3B"/>
+  <text x="219" y="184" text-anchor="middle" font-size="11.5" fill="var(--ink)">baseline flow 먼저</text>
+  <text x="219" y="199" text-anchor="middle" font-size="9.5" fill="var(--muted)">수정 전 동작을 박아둔다</text>
+
+  <rect x="340" y="164" width="270" height="46" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+  <text x="475" y="184" text-anchor="middle" font-size="11.5" fill="var(--ink)">explorer &rarr; implementer &rarr; builder</text>
+  <text x="475" y="199" text-anchor="middle" font-size="9.5" fill="var(--muted)">+ verifier 병렬</text>
+
+  <rect x="638" y="164" width="248" height="46" rx="2" fill="var(--det-bg)" stroke="var(--det)"/>
+  <text x="762" y="184" text-anchor="middle" font-size="11.5" fill="var(--ink)">게이트: baseline 과 대조</text>
+  <text x="762" y="199" text-anchor="middle" font-size="9.5" fill="#A93B3B">NO_FLOW 는 실패</text>
+
+  <!-- ── feature ── -->
+  <text x="14" y="288" font-family="IBM Plex Sans KR, sans-serif" font-size="13.5" font-weight="600" fill="var(--ink)">/feature</text>
+  <text x="14" y="305" font-size="10" fill="var(--muted)">신규 기능</text>
+
+  <rect x="126" y="270" width="186" height="46" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+  <text x="219" y="290" text-anchor="middle" font-size="11.5" fill="var(--ink)">토론 &rarr; 명세 동결</text>
+  <text x="219" y="305" text-anchor="middle" font-size="9.5" fill="var(--muted)">+ 필수 승인 게이트</text>
+
+  <rect x="340" y="270" width="270" height="46" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+  <text x="475" y="290" text-anchor="middle" font-size="11.5" fill="var(--ink)">explorer &rarr; implementer &rarr; builder</text>
+  <text x="475" y="305" text-anchor="middle" font-size="9.5" fill="var(--muted)">+ verifier 병렬</text>
+
+  <rect x="638" y="270" width="248" height="46" rx="2" fill="var(--det-bg)" stroke="var(--det)"/>
+  <text x="762" y="290" text-anchor="middle" font-size="11.5" fill="var(--ink)">게이트: spec 에서 flow 생성</text>
+  <text x="762" y="305" text-anchor="middle" font-size="9.5" fill="var(--muted)">구현을 관찰하지 않는다</text>
+  </g>
+
+  <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#a4)">
+    <line x1="312" y1="81"  x2="334" y2="81"/>  <line x1="610" y1="81"  x2="632" y2="81"/>
+    <line x1="312" y1="187" x2="334" y2="187"/> <line x1="610" y1="187" x2="632" y2="187"/>
+    <line x1="312" y1="293" x2="334" y2="293"/> <line x1="610" y1="293" x2="632" y2="293"/>
+  </g>
+</svg>
+</div>
+<figcaption><b>도판 3</b>가운데 열은 셋 다 같다. 왼쪽(무엇을 근거로 시작하나)과 오른쪽(무엇과 대조하나)만 다르다.</figcaption>
+</figure>
+
+<h3>자기충족 함정을 피하는 세 가지 방법</h3>
+<p>
+  회귀 테스트를 구현 <em>후에</em> 쓰면 구현을 그대로 베끼게 된다. 통과는 하지만 아무것도 검증하지 않는다.
+  세 파이프라인이 이 함정을 각자 다르게 피한다.
+</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>파이프라인</th><th>테스트 출처</th><th>회피 축</th><th class="mono">no_flow 의 의미</th></tr></thead>
+<tbody>
+<tr><td class="mono">/modernize</td><td>수정 전 실제 동작</td><td>시간축 &mdash; 구현보다 먼저 쓴다</td><td><span class="tag t-stop">실패</span> 보존 검증이 목적</td></tr>
+<tr><td class="mono">/feature</td><td>동결된 수용조건</td><td>출처축 &mdash; 명세에서 쓴다</td><td><span class="tag t-read">조건부 통과</span> 비-UI 기능일 때만</td></tr>
+<tr><td class="mono">/fix</td><td>기존 flow 또는 신규</td><td>기회주의 &mdash; UI 버그일 때만</td><td><span class="tag t-read">조건부 통과</span> <code>ui_observable=false</code> 일 때만</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="note-h">같은 신호, 다른 해석</span>
+  <code>no_flow</code>는 &ldquo;재생할 테스트가 없다&rdquo;는 같은 신호인데 파이프라인마다 뜻이 반대다.
+  마이그레이션에서는 보존을 증명 못 했으니 실패고, 버그 수정에서는 비-UI 버그라면 정상이다.
+  <strong>신호를 맥락에 따라 다르게 읽도록 문서에 못 박아 두는 것</strong>이 이 설계에서 제일 미묘한 부분이다.
+</div>
+</section>
+
+<!-- ═══════════════ 4 ═══════════════ -->
+<section id="fix">
+<h2><span class="num">04</span>/fix 해부</h2>
+<p class="lede">
+  가장 자주 도는 파이프라인. 원래 세 개의 커맨드였던 것을 하나로 합쳤다 &mdash;
+  <code>/bugfix</code>는 45%, <code>/crashfix</code>는 61%가 <code>/fix</code>와 글자 단위로 같은 줄이었다.
+  다른 것은 <strong>문제를 어디서 가져오는가</strong>뿐이었다.
+</p>
+
+<figure>
+<div class="fig-body">
+<svg viewBox="0 0 900 400" role="img" aria-label="세 가지 인테이크 모드가 하나의 공통 본체로 합류하고, 게이트 판정이 다섯 갈래로 갈리는 fix 파이프라인 구조">
+  <defs>
+    <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="22" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--faint)">0단계 &mdash; 여기서만 갈라진다</text>
+
+  <g font-family="IBM Plex Mono, monospace" font-size="11">
+    <rect x="16" y="34" width="230" height="42" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="30" y="52" fill="var(--ink)" font-size="11.5">/fix &lt;설명&gt;</text>
+    <text x="30" y="68" fill="var(--muted)" font-size="10">인자 또는 대화 맥락</text>
+    <text x="232" y="60" text-anchor="end" fill="var(--llm)" font-size="10">manual</text>
+
+    <rect x="16" y="86" width="230" height="42" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="30" y="104" fill="var(--ink)" font-size="11.5">/fix --build</text>
+    <text x="30" y="120" fill="var(--muted)" font-size="10">builder 선행 호출</text>
+    <text x="232" y="112" text-anchor="end" fill="var(--llm)" font-size="10">build</text>
+
+    <rect x="16" y="138" width="230" height="42" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="30" y="156" fill="var(--ink)" font-size="11.5">/fix --crash [id]</text>
+    <text x="30" y="172" fill="var(--muted)" font-size="10">Crashlytics + 스택 파싱</text>
+    <text x="232" y="164" text-anchor="end" fill="var(--llm)" font-size="10">crash</text>
+  </g>
+
+  <!-- 합류 -->
+  <g stroke="currentColor" stroke-width="1.3" fill="none">
+    <path d="M246 55 L282 55 L282 107"/>
+    <path d="M246 107 L282 107"/>
+    <path d="M246 159 L282 159 L282 107"/>
+    <line x1="282" y1="107" x2="316" y2="107" marker-end="url(#a5)"/>
+  </g>
+  <text x="282" y="196" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--faint)">intake.json</text>
+
+  <!-- 본체 -->
+  <rect x="322" y="30" width="176" height="154" rx="2" fill="var(--surface)" stroke="var(--rule)" stroke-width="1.4"/>
+  <text x="410" y="52" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">공통 본체</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--muted)" text-anchor="middle">
+    <text x="410" y="78">1 explorer</text>
+    <text x="410" y="98">2 implementer</text>
+    <text x="410" y="118">3 builder</text>
+    <text x="410" y="146">모드를 참조하지</text>
+    <text x="410" y="162">않는다</text>
+  </g>
+  <line x1="340" y1="128" x2="480" y2="128" stroke="var(--line)"/>
+
+  <line x1="498" y1="107" x2="532" y2="107" stroke="currentColor" stroke-width="1.3" marker-end="url(#a5)"/>
+
+  <!-- 게이트 -->
+  <rect x="538" y="76" width="130" height="62" rx="2" fill="var(--det-bg)" stroke="var(--det)" stroke-width="1.4"/>
+  <text x="603" y="100" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">3.5 게이트</text>
+  <text x="603" y="118" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">runner.json</text>
+
+  <!-- 5 분기 -->
+  <g font-family="IBM Plex Mono, monospace" font-size="10.5">
+    <rect x="712" y="20"  width="172" height="30" rx="2" fill="var(--stop-bg)" stroke="var(--stop)"/>
+    <text x="724" y="39" fill="var(--ink)">gate_error &rarr; Human Gate</text>
+
+    <rect x="712" y="58"  width="172" height="30" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+    <text x="724" y="77" fill="var(--ink)">skipped &rarr; 기기 미연결</text>
+
+    <rect x="712" y="96"  width="172" height="30" rx="2" fill="var(--det-bg)" stroke="var(--det)"/>
+    <text x="724" y="115" fill="var(--ink)">replay ok &rarr; SUCCESS</text>
+
+    <rect x="712" y="134" width="172" height="30" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+    <text x="724" y="153" fill="var(--ink)">no_flow + 비UI &rarr; 통과</text>
+
+    <rect x="712" y="172" width="172" height="30" rx="2" fill="var(--stop-bg)" stroke="var(--stop)"/>
+    <text x="724" y="191" fill="var(--ink)">no_flow + UI &rarr; 오인 통과</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.1" fill="none" marker-end="url(#a5)">
+    <path d="M668 100 L690 100 L690 35 L706 35"/>
+    <path d="M668 103 L690 103 L690 73 L706 73"/>
+    <line x1="668" y1="107" x2="706" y2="111"/>
+    <path d="M668 114 L690 114 L690 149 L706 149"/>
+    <path d="M668 118 L690 118 L690 187 L706 187"/>
+  </g>
+
+  <!-- 오인 통과 강조 -->
+  <path d="M798 202 L798 232 L410 232 L410 190" stroke="var(--stop)" stroke-width="1.4" fill="none" stroke-dasharray="4 3" marker-end="url(#a5)"/>
+  <text x="604" y="250" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="11" fill="var(--stop)">통과시키지 않는다 &mdash; flow 작성 또는 태그 수정으로 되돌아간다</text>
+
+  <!-- 종료값 -->
+  <text x="16" y="292" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--faint)">종료값 &mdash; 지어내지 않는다</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="10.5">
+    <rect x="16" y="304" width="164" height="30" rx="2" fill="var(--det-bg)" stroke="var(--det)"/>
+    <text x="28" y="323" fill="var(--ink)">SUCCESS</text>
+    <rect x="192" y="304" width="164" height="30" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+    <text x="204" y="323" fill="var(--ink)">NO_TARGET</text>
+    <rect x="368" y="304" width="230" height="30" rx="2" fill="var(--stop-bg)" stroke="var(--stop)"/>
+    <text x="380" y="323" fill="var(--ink)">FAILED_&#123;MAX_ITER · SAME_ERROR…&#125;</text>
+    <rect x="610" y="304" width="164" height="30" rx="2" fill="var(--llm-bg)" stroke="var(--llm)"/>
+    <text x="622" y="323" fill="var(--ink)">HUMAN_GATE</text>
+    <text x="786" y="323" font-size="9.5" fill="var(--faint)">종료 아님</text>
+  </g>
+  <text x="16" y="360" font-family="IBM Plex Sans KR, sans-serif" font-size="11" fill="var(--muted)">NO_TARGET 을 SUCCESS 로 적지 않는다 &mdash; 전자는 아무것도 안 고쳤고 후자는 고치고 검증까지 마쳤다.</text>
+  <text x="16" y="378" font-family="IBM Plex Sans KR, sans-serif" font-size="11" fill="var(--muted)">섞으면 게이트 통과율이 인테이크 공회전으로 부풀려진다.</text>
+</svg>
+</div>
+<figcaption><b>도판 4</b>인테이크는 팬인이고 게이트 판정은 팬아웃이다. 다섯 갈래 중 둘만 통과이며, 나머지 셋은 각기 다른 이유로 통과가 아니다.</figcaption>
+</figure>
+
+<h3>합치면서 함께 닫힌 구멍</h3>
+<div class="tw">
+<table>
+<thead><tr><th>합치기 전</th><th>합친 뒤</th></tr></thead>
+<tbody>
+<tr><td>금지 글롭이 3개 파일에 복제 &mdash; 한 곳 고치면 나머지 둘이 드리프트</td><td>1곳</td></tr>
+<tr><td>무의미 diff 검사가 4종 / 3종 / 4종으로 갈림</td><td>4종으로 통일</td></tr>
+<tr><td><code>/crashfix</code>에 런타임 게이트가 없음 &mdash; 크래시를 고치는데 앱을 안 켜봄</td><td>공통 3.5단계를 물려받음</td></tr>
+<tr><td><code>/bugfix</code>의 앵커 없는 &ldquo;fix 와 동일하다&rdquo; 참조 4곳</td><td>소멸</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="note-h">경계 규칙</span>
+  <code>/modernize</code>와 <code>/feature</code>는 합치지 않는다.
+  <strong>인테이크가 다른 건 합치고, 제어 흐름이 다른 건 나눈다.</strong>
+  전자는 앞단만 갈리지만 후자는 순서 자체가 다르다 &mdash;
+  마이그레이션은 수정 전에 테스트를 뜨고, 신규 기능은 승인에서 멈춘다.
+</div>
+</section>
+
+<!-- ═══════════════ 5 ═══════════════ -->
+<section id="agents">
+<h2><span class="num">05</span>에이전트 13개</h2>
+<p class="lede">
+  각 에이전트는 독립 컨텍스트에서 돌고 오케스트레이터에는 결론 JSON만 반환한다.
+  파이프라인이 길어져도 컨텍스트가 부풀지 않는 이유이자, 권한을 물리적으로 가를 수 있는 이유다.
+</p>
+
+<div class="note">
+  <span class="note-h">핵심 설계</span>
+  &ldquo;고치지 마&rdquo;라고 프롬프트에 <em>부탁하지</em> 않는다.
+  프론트매터의 <code>tools:</code>에서 Edit/Write를 <strong>빼버린다</strong>.
+  탐색 에이전트는 파일을 고칠 능력 자체가 없다. 지시를 어길 수가 없다.
+</div>
+
+<div class="tw">
+<table>
+<thead><tr><th>에이전트</th><th>역할</th><th class="mono">tools</th><th>쓰기</th></tr></thead>
+<tbody>
+<tr><td class="mono">explorer</td><td>수정할 파일 범위를 제안</td><td class="mono">Read Grep Glob Bash</td><td><span class="tag t-read">읽기만</span></td></tr>
+<tr><td class="mono">implementer</td><td>허가된 파일만 수정</td><td class="mono">Read Edit Write</td><td><span class="tag t-write">허가 목록 내</span></td></tr>
+<tr><td class="mono">implementer-modernize</td><td>마이그레이션 전용 수정</td><td class="mono">Read Edit Write</td><td><span class="tag t-write">허가 목록 내</span></td></tr>
+<tr><td class="mono">builder</td><td>빌드 실행, 에러 분석</td><td class="mono">Bash Read</td><td><span class="tag t-none">없음</span></td></tr>
+<tr><td class="mono">verifier</td><td>원본 대조, 완료 기준 검증</td><td class="mono">Read Grep Glob Bash</td><td><span class="tag t-read">읽기만</span></td></tr>
+<tr><td class="mono">triage</td><td>실패 원인 4분류</td><td class="mono">Bash Read</td><td><span class="tag t-none">없음</span></td></tr>
+<tr><td class="mono">documenter</td><td>도메인 문서 갱신</td><td class="mono">Read Write</td><td><span class="tag t-write">문서만</span></td></tr>
+<tr><td class="mono">discuss</td><td>범위 합의, 엣지 케이스 제기</td><td class="mono">Read Grep Bash Ask Write</td><td><span class="tag t-write">합의 기록</span></td></tr>
+<tr><td class="mono">spec</td><td>토론을 수용조건으로 동결</td><td class="mono">Read Grep Glob Bash Write</td><td><span class="tag t-write">명세만</span></td></tr>
+<tr><td class="mono">planner</td><td>파일·이벤트 계획 설계</td><td class="mono">Read Grep Glob Bash Write</td><td><span class="tag t-write">계획만</span></td></tr>
+<tr><td class="mono">plan-checker</td><td>계획이 수용조건을 달성하는지 역산</td><td class="mono">Read Grep Glob Bash Write</td><td><span class="tag t-write">검증 결과만</span></td></tr>
+<tr><td class="mono">researcher</td><td>외부 문서·사내 위키 조회</td><td class="mono">Bash WebSearch WebFetch</td><td><span class="tag t-none">없음</span></td></tr>
+<tr><td class="mono">tutor</td><td>공식 문서와 실제 사용 대조</td><td class="mono">Read Grep Bash Web*</td><td><span class="tag t-read">읽기만</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>
+  코드를 실제로 바꿀 수 있는 것은 <strong>13개 중 2개</strong>다.
+  그 둘조차 <code>orchestrator.json</code>의 <code>allowed_to_modify</code> 목록 밖은 건드리지 않는다.
+  목록은 explorer가 제안하고 오케스트레이터가 금지 글롭으로 걸러 확정한다 &mdash;
+  제안하는 쪽과 승인하는 쪽이 분리돼 있다.
+</p>
+</section>
+
+<!-- ═══════════════ 6 ═══════════════ -->
+<section id="state">
+<h2><span class="num">06</span>상태기계</h2>
+<p class="lede">
+  <code>orchestrator.json</code> 하나가 유일한 권위다. 에이전트는 각자 JSON을 반환하지만
+  <strong>상태를 쓰는 것은 오케스트레이터뿐</strong>이다. 필드는 세 부류로 나뉜다.
+</p>
+
+<figure>
+<div class="fig-body">
+<svg viewBox="0 0 900 250" role="img" aria-label="상태 필드가 범위 통제, 루프 통제, 결과 기록 세 부류로 나뉘는 구조">
+  <g font-family="IBM Plex Mono, monospace" font-size="11">
+    <rect x="16" y="16" width="282" height="212" rx="2" fill="var(--surface)" stroke="var(--det)" stroke-width="1.4"/>
+    <text x="32" y="40" font-family="IBM Plex Sans KR, sans-serif" font-size="13" font-weight="600" fill="var(--ink)">범위 통제</text>
+    <text x="32" y="57" font-size="10" fill="var(--muted)">무엇을 건드려도 되는가</text>
+    <line x1="32" y1="68" x2="282" y2="68" stroke="var(--line)"/>
+    <g fill="var(--ink)" font-size="11">
+      <text x="32" y="90">allowed_to_modify</text>
+      <text x="32" y="110">forbidden_rules</text>
+      <text x="32" y="130">risk_flags</text>
+      <text x="32" y="150">risk_level</text>
+      <text x="32" y="170">ui_observable</text>
+      <text x="32" y="190">intake_mode</text>
+    </g>
+    <text x="32" y="214" font-size="9.5" fill="var(--faint)">explorer 제안 → 글롭 필터 → 확정</text>
+
+    <rect x="310" y="16" width="282" height="212" rx="2" fill="var(--surface)" stroke="var(--stop)" stroke-width="1.4"/>
+    <text x="326" y="40" font-family="IBM Plex Sans KR, sans-serif" font-size="13" font-weight="600" fill="var(--ink)">루프 통제</text>
+    <text x="326" y="57" font-size="10" fill="var(--muted)">언제 멈추는가</text>
+    <line x1="326" y1="68" x2="576" y2="68" stroke="var(--line)"/>
+    <g fill="var(--ink)" font-size="11">
+      <text x="326" y="90">attempt_count</text>       <text x="576" y="90" text-anchor="end" fill="var(--stop)">&ge; 5</text>
+      <text x="326" y="110">same_error_count</text>    <text x="576" y="110" text-anchor="end" fill="var(--stop)">&ge; 3</text>
+      <text x="326" y="130">runtime_attempt_count</text>
+      <text x="326" y="150">flaky_retry_count</text>   <text x="576" y="150" text-anchor="end" fill="var(--stop)">&gt; 2</text>
+      <text x="326" y="170">flow_fix_count</text>      <text x="576" y="170" text-anchor="end" fill="var(--stop)">&gt; 2</text>
+      <text x="326" y="190">last_error_hash</text>
+    </g>
+    <text x="326" y="214" font-size="9.5" fill="var(--faint)">상한 도달 → 종료 또는 Human Gate</text>
+
+    <rect x="604" y="16" width="280" height="212" rx="2" fill="var(--surface)" stroke="var(--rule)" stroke-width="1.4"/>
+    <text x="620" y="40" font-family="IBM Plex Sans KR, sans-serif" font-size="13" font-weight="600" fill="var(--ink)">결과 기록</text>
+    <text x="620" y="57" font-size="10" fill="var(--muted)">무슨 일이 있었는가</text>
+    <line x1="620" y1="68" x2="868" y2="68" stroke="var(--line)"/>
+    <g fill="var(--ink)" font-size="11">
+      <text x="620" y="90">status</text>
+      <text x="620" y="110">termination_reason</text>
+      <text x="620" y="130">step_id</text>
+      <text x="620" y="150">last_explorer_step</text>
+      <text x="620" y="170">last_triage_category</text>
+      <text x="620" y="190">human_gate_required</text>
+    </g>
+    <text x="620" y="214" font-size="9.5" fill="var(--faint)">정의된 값만 쓴다 → 집계 가능</text>
+  </g>
+</svg>
+</div>
+<figcaption><b>도판 5</b>세 부류가 각각 다른 질문에 답한다 &mdash; 어디까지 손대나, 언제 그만두나, 무슨 일이 있었나.</figcaption>
+</figure>
+
+<h3>세션 격리</h3>
+<p>
+  호출마다 <code>SESSION_ID</code>를 만들고 그 아래에만 상태를 쓴다.
+  같은 저장소에서 파이프라인을 동시에 두 개 돌려도 서로의 상태를 덮지 않는다.
+</p>
+<pre>SESSION_ID="fix-$(date +%Y%m%d-%H%M%S)-$(openssl rand -hex 2)"
+SESSION_DIR=".claude/state/sessions/${SESSION_ID}"
+
+${SESSION_DIR}/
+  orchestrator.json   ← 유일한 권위
+  intake.json         ← 문제 출처 (모드 무관 공통 스키마)
+  implementer.json    ← 패치 이력 (링 버퍼)
+  builder.json        ← 빌드 결과
+  runner.json         ← 게이트 결과 (셸이 기록)
+  triage.json         ← 실패 분류</pre>
+</section>
+
+<!-- ═══════════════ 7 ═══════════════ -->
+<section id="gate">
+<h2><span class="num">07</span>런타임 게이트</h2>
+<p class="lede">
+  이 파이프라인에서 유일하게 LLM이 개입하지 않는 구간. 빌드가 통과했다는 것과
+  화면이 실제로 동작한다는 것은 다른 얘기이기 때문에 있다.
+</p>
+
+<figure>
+<div class="fig-body">
+<svg viewBox="0 0 900 268" role="img" aria-label="도메인 매핑에서 게이트 실행, 결과 파싱, 메트릭 누적으로 이어지는 결정적 셸 체인">
+  <defs>
+    <marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <rect x="12" y="10" width="876" height="150" rx="2" fill="var(--det-bg)" opacity="0.5"/>
+  <text x="28" y="32" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--det)">결정적 구간 &mdash; LLM 미개입 · 토큰 0</text>
+
+  <g font-family="IBM Plex Mono, monospace" font-size="11">
+    <rect x="28" y="48" width="152" height="88" rx="2" fill="var(--surface)" stroke="var(--det)"/>
+    <text x="104" y="72" text-anchor="middle" fill="var(--ink)" font-size="11">domains_for.py</text>
+    <text x="104" y="94" text-anchor="middle" fill="var(--muted)" font-size="10">바뀐 파일 경로</text>
+    <text x="104" y="110" text-anchor="middle" fill="var(--muted)" font-size="10">→ 도메인 태그</text>
+    <text x="104" y="128" text-anchor="middle" fill="var(--faint)" font-size="9.5">모르면 ALL</text>
+
+    <rect x="216" y="48" width="176" height="88" rx="2" fill="var(--surface)" stroke="var(--det)"/>
+    <text x="304" y="72" text-anchor="middle" fill="var(--ink)" font-size="11">runtime_gate.sh</text>
+    <text x="304" y="94" text-anchor="middle" fill="var(--muted)" font-size="10">기기 확인 → install</text>
+    <text x="304" y="110" text-anchor="middle" fill="var(--muted)" font-size="10">→ 태그별 선택 재생</text>
+    <text x="304" y="128" text-anchor="middle" fill="var(--faint)" font-size="9.5">커버 도메인 실측</text>
+
+    <rect x="428" y="48" width="164" height="88" rx="2" fill="var(--surface)" stroke="var(--det)"/>
+    <text x="510" y="72" text-anchor="middle" fill="var(--ink)" font-size="11">parse_runner.py</text>
+    <text x="510" y="94" text-anchor="middle" fill="var(--muted)" font-size="10">JUnit XML 파싱</text>
+    <text x="510" y="110" text-anchor="middle" fill="var(--muted)" font-size="10">실패 스크린샷 탐색</text>
+    <text x="510" y="128" text-anchor="middle" fill="var(--faint)" font-size="9.5">판단하지 않는다</text>
+
+    <rect x="628" y="48" width="164" height="88" rx="2" fill="var(--surface)" stroke="var(--det)"/>
+    <text x="710" y="72" text-anchor="middle" fill="var(--ink)" font-size="11">record_metric.py</text>
+    <text x="710" y="94" text-anchor="middle" fill="var(--muted)" font-size="10">멱등 누적</text>
+    <text x="710" y="110" text-anchor="middle" fill="var(--muted)" font-size="10">metrics.jsonl</text>
+    <text x="710" y="128" text-anchor="middle" fill="var(--faint)" font-size="9.5">모든 종료 경로에서</text>
+  </g>
+
+  <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#a6)">
+    <line x1="180" y1="92" x2="210" y2="92"/>
+    <line x1="392" y1="92" x2="422" y2="92"/>
+    <line x1="592" y1="92" x2="622" y2="92"/>
+  </g>
+  <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--faint)" text-anchor="middle">
+    <text x="195" y="84">TAGS</text>
+    <text x="407" y="84">XML</text>
+    <text x="607" y="84">json</text>
+  </g>
+
+  <!-- 산출물 -->
+  <rect x="428" y="188" width="164" height="38" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+  <text x="510" y="212" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink)">runner.json</text>
+  <line x1="510" y1="136" x2="510" y2="182" stroke="currentColor" stroke-width="1.2" marker-end="url(#a6)"/>
+
+  <rect x="628" y="188" width="164" height="38" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+  <text x="710" y="212" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink)">metrics.jsonl</text>
+  <line x1="710" y1="136" x2="710" y2="182" stroke="currentColor" stroke-width="1.2" marker-end="url(#a6)"/>
+
+  <text x="510" y="252" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="11" fill="var(--muted)">오케스트레이터는 여기서부터 다시 LLM 판단으로 돌아간다</text>
+</svg>
+</div>
+<figcaption><b>도판 6</b>측정 기록이 셸 안에 있는 것이 의도다. 커맨드 문서 마지막 단계에 맡기면 LLM이 거기까지 도달해야만 남는데, 실제로는 중간에 끝나는 일이 잦다.</figcaption>
+</figure>
+
+<div class="note">
+  <span class="note-h">측정이 셸로 내려간 이유</span>
+  기록을 문서 단계에 맡겼을 때 <strong>게이트를 27회 돌리고 메트릭이 1줄만 쌓여 있었다.</strong>
+  결정적으로 도는 자리로 옮긴 뒤에야 실제로 누적되기 시작했다.
+  자동화의 측정층은 자동화 자체보다 먼저 무너진다.
+</div>
+
+<h3>선택적 재생</h3>
+<p>
+  테스트가 쌓이면 전체 재생은 시간이 선형으로 폭발한다. 그래서 바뀐 파일의 도메인 태그를 산출해
+  그 도메인 테스트만 돌린다. 공유 코드를 건드렸으면 전체 회귀로 떨어진다.
+</p>
+<pre>TAGS=$(python3 domains_for.py &lt;바뀐 파일들&gt;)
+bash runtime_gate.sh "${SESSION_DIR}" "" "$TAGS"
+
+# TAGS=message      → message 태그 테스트만 재생
+# TAGS=profile      → 그 도메인 테스트 0개 → NO_FLOW (정직한 신호)
+# TAGS=ALL          → 전체 재생 ... 이지만 다음 절 참조</pre>
+</section>
+
+<!-- ═══════════════ 8 ═══════════════ -->
+<section id="stop">
+<h2><span class="num">08</span>멈추는 법</h2>
+<p class="lede">
+  자동 루프에서 제일 중요한 것은 시작이 아니라 종료다.
+  LLM은 &ldquo;고쳤습니다&rdquo;라고 말하면서 아무것도 안 바꿀 수 있고, 같은 자리를 무한히 맴돌 수 있다.
+</p>
+
+<h3>무의미 diff 검사 4종</h3>
+<p>수정 직후 <code>implementer.json</code>의 패치 이력을 본다. 넷 중 하나에 걸리면 루프를 끊는다.</p>
+<div class="tw">
+<table>
+<thead><tr><th class="num-col">#</th><th>조건</th><th>막는 실패</th><th>동작</th></tr></thead>
+<tbody>
+<tr><td class="num-col mono">1</td><td class="mono">changed_lines == 0</td><td>말만 하고 안 고침</td><td><span class="tag t-stop">종료</span></td></tr>
+<tr><td class="num-col mono">2</td><td class="mono">diff_hash + files 가 직전과 동일</td><td>같은 패치 반복</td><td><span class="tag t-stop">종료</span></td></tr>
+<tr><td class="num-col mono">3</td><td class="mono">최근 3개 패치가 모두 3줄 미만</td><td>공백·주석만 만지며 시간 끌기</td><td><span class="tag t-stop">종료</span></td></tr>
+<tr><td class="num-col mono">4</td><td class="mono">최근 3개 패치가 모두 같은 파일</td><td>한 자리를 맴돎</td><td><span class="tag t-write">사람 판단</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>실패 4분류</h3>
+<p>
+  테스트가 깨졌다고 다 버그가 아니다. 테스트 자체가 낡았을 수도, 기기 상태 문제일 수도 있다.
+  분류를 안 하면 <strong>테스트가 틀린 것을 고치려고 멀쩡한 코드를 뜯게 된다.</strong>
+</p>
+<div class="tw">
+<table>
+<thead><tr><th class="mono">category</th><th>뜻</th><th>다음 행동</th><th>상한</th></tr></thead>
+<tbody>
+<tr><td class="mono">REAL_BUG</td><td>코드가 실제로 틀렸다</td><td>implementer 재호출</td><td>같은 화면 3연속 → 사람</td></tr>
+<tr><td class="mono">FLAKY</td><td>타이밍·불안정</td><td>재생만 다시</td><td>2회 초과 → 사람</td></tr>
+<tr><td class="mono">FLOW_ERROR</td><td>테스트가 낡았다</td><td>테스트 수정 후 재생</td><td>2회 초과 → 사람</td></tr>
+<tr><td class="mono">ENV_STATE</td><td>미로그인·권한·기기</td><td>사람 개입</td><td>즉시</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="note-h">확신도가 낮으면 올린다</span>
+  분류 신뢰도가 <code>LOW</code>면 다음 행동을 무조건 <strong>사람 판단</strong>으로 승격시킨다.
+  애매할 때 자동으로 계속 도는 것이 가장 비싼 실패다.
+</div>
+
+<dl class="stats">
+  <div class="stat"><dt>시도 상한</dt><dd>5<small>회</small></dd></div>
+  <div class="stat"><dt>동일 에러</dt><dd>3<small>연속</small></dd></div>
+  <div class="stat"><dt>불안정 재시도</dt><dd>2<small>회</small></dd></div>
+  <div class="stat"><dt>테스트 수정</dt><dd>2<small>회</small></dd></div>
+  <div class="stat"><dt>diff 검사</dt><dd>4<small>종</small></dd></div>
+  <div class="stat"><dt>쓰기 가능 에이전트</dt><dd>2<small>/13</small></dd></div>
+</dl>
+</section>
+
+<!-- ═══════════════ 9 ═══════════════ -->
+<section id="domains">
+<h2><span class="num">09</span>도메인 매핑</h2>
+<p class="lede">
+  바뀐 파일에서 도메인을 못 뽑으면 전체 회귀로 떨어진다. 안전한 폴백처럼 보이지만,
+  <strong>테스트가 전 도메인을 덮을 때만</strong> 참인 이야기다.
+</p>
+
+<figure>
+<div class="fig-body">
+<svg viewBox="0 0 900 300" role="img" aria-label="파일을 평면에 두면 전체 회귀로 떨어져 무관한 테스트가 통과하는 거짓 초록불이 되고, 도메인 폴더에 두면 정직한 커버리지 없음 신호가 나오는 비교">
+  <defs>
+    <marker id="a7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <line x1="450" y1="14" x2="450" y2="286" stroke="var(--line)" stroke-dasharray="4 4"/>
+
+  <!-- 왼쪽: 평면 -->
+  <text x="20" y="30" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.2" fill="var(--stop)">평면 배치</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="11">
+    <rect x="20" y="42" width="400" height="34" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+    <text x="34" y="64" fill="var(--ink)" font-size="11">activity/ProfileScreen.kt</text>
+
+    <rect x="20" y="98" width="400" height="34" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+    <text x="34" y="120" fill="var(--muted)" font-size="11">접두사 미등록 &rarr; None &rarr; TAGS=ALL</text>
+
+    <rect x="20" y="154" width="400" height="34" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+    <text x="34" y="176" fill="var(--muted)" font-size="11">message · member 테스트 재생 &rarr; 전원 통과</text>
+
+    <rect x="20" y="210" width="400" height="52" rx="2" fill="var(--stop-bg)" stroke="var(--stop)" stroke-width="1.5"/>
+    <text x="34" y="232" fill="var(--ink)" font-size="12" font-family="IBM Plex Sans KR, sans-serif" font-weight="600">거짓 초록불</text>
+    <text x="34" y="251" fill="var(--muted)" font-size="10.5" font-family="IBM Plex Sans KR, sans-serif">바꾼 화면은 한 번도 안 열어봤다</text>
+  </g>
+  <g stroke="var(--stop)" stroke-width="1.3" fill="none" marker-end="url(#a7)">
+    <line x1="220" y1="76" x2="220" y2="92"/>
+    <line x1="220" y1="132" x2="220" y2="148"/>
+    <line x1="220" y1="188" x2="220" y2="204"/>
+  </g>
+
+  <!-- 오른쪽: 폴더 -->
+  <text x="480" y="30" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.2" fill="var(--det)">도메인 폴더</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="11">
+    <rect x="480" y="42" width="400" height="34" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+    <text x="494" y="64" fill="var(--ink)" font-size="11">activity/profile/ProfileScreen.kt</text>
+
+    <rect x="480" y="98" width="400" height="34" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+    <text x="494" y="120" fill="var(--muted)" font-size="11">폴더로 자동 판정 &rarr; TAGS=profile</text>
+
+    <rect x="480" y="154" width="400" height="34" rx="2" fill="var(--sunk)" stroke="var(--rule)"/>
+    <text x="494" y="176" fill="var(--muted)" font-size="11">그 태그 테스트 0개 &rarr; NO_FLOW</text>
+
+    <rect x="480" y="210" width="400" height="52" rx="2" fill="var(--det-bg)" stroke="var(--det)" stroke-width="1.5"/>
+    <text x="494" y="232" fill="var(--ink)" font-size="12" font-family="IBM Plex Sans KR, sans-serif" font-weight="600">정직한 신호</text>
+    <text x="494" y="251" fill="var(--muted)" font-size="10.5" font-family="IBM Plex Sans KR, sans-serif">커버리지 없음 &rarr; 테스트부터 쓰게 만든다</text>
+  </g>
+  <g stroke="var(--det)" stroke-width="1.3" fill="none" marker-end="url(#a7)">
+    <line x1="680" y1="76" x2="680" y2="92"/>
+    <line x1="680" y1="132" x2="680" y2="148"/>
+    <line x1="680" y1="188" x2="680" y2="204"/>
+  </g>
+</svg>
+</div>
+<figcaption><b>도판 7</b>같은 파일, 같은 코드. <strong>배치만 다르다.</strong> 왼쪽은 통과하고 오른쪽은 막힌다 &mdash; 막히는 쪽이 옳다.</figcaption>
+</figure>
+
+<h3>왜 폴더가 접두사보다 나은가</h3>
+<div class="tw">
+<table>
+<thead><tr><th>배치</th><th>판정 방식</th><th>유지보수</th><th>누락을 잡을 수 있나</th></tr></thead>
+<tbody>
+<tr><td class="mono">&lt;루트&gt;/&lt;도메인&gt;/</td><td>폴더 이름으로 자동 (dir_rules)</td><td>없음</td><td><span class="tag t-read">잡힌다</span> 실제 트리와 대조</td></tr>
+<tr><td class="mono">&lt;루트&gt;/ (평면)</td><td>접두사 등록 필요 (prefix_rules)</td><td>파일마다 손으로</td><td><span class="tag t-stop">못 잡는다</span> 기계가 도메인을 모름</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>
+  이 비대칭이 결정적이다. 폴더 누락은 자기 점검으로 잡히지만
+  <strong>접두사 누락은 잡을 방법이 없다.</strong> 그 파일이 어느 도메인에 속하는지 기계가 알 수 없기 때문이다.
+  그래서 새 파일은 폴더에 두는 것을 완료 기준에 넣었다.
+</p>
+
+<pre>$ domains_for.py --self-check
+&lt;소스 루트&gt;: known 22개가 실제 폴더와 일치</pre>
+
+<p>
+  도메인 표는 이제 코드가 아니라 <code>project.json</code> 의 <code>domains</code> 에 있다.
+  규칙 종류는 둘뿐이다 &mdash; 폴더 이름이 곧 도메인인 경우(<code>dir_rules</code>)와
+  파일명 접두사가 도메인을 가리키는 경우(<code>prefix_rules</code>).
+  설정이 없으면 매핑은 전부 <code>ALL</code> 이다. 모르면 넓게 도는 쪽이 안전하기 때문이다.
+</p>
+
+<div class="note warn">
+  <span class="note-h">이 점검이 처음 잡아낸 것</span>
+  <strong>등록된 폴더 22개 중 8개가 빠져 있었다</strong> &mdash; 파일 47개가 조용히 전체 회귀로 떨어지고 있었다.
+  게다가 등록돼 있던 폴더 하나는 소스가 0개였다. 코드가 옮겨간 뒤 목록만 남은 것이다.
+  손으로 관리하는 목록은 반드시 현실과 어긋난다. 어긋남을 <em>잡는 장치</em>가 목록보다 중요하다.
+</div>
+</section>
+
+<!-- ═══════════════ 10 ═══════════════ -->
+<section id="port">
+<h2><span class="num">10</span>이식 구조</h2>
+<p class="lede">
+  다른 프로젝트에 올리는 절차. 로직은 복사하고, 빈칸은 스캔해서 채우고, 지식은 새로 쓴다.
+</p>
+
+<figure>
+<div class="fig-body">
+<svg viewBox="0 0 900 264" role="img" aria-label="하네스 저장소에서 대상 프로젝트로 설치되고, 프로젝트에서 발견한 수정이 다시 저장소로 역수출되는 양방향 흐름">
+  <defs>
+    <marker id="a8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+    </marker>
+    <marker id="a9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#0E6B6B"/>
+    </marker>
+  </defs>
+
+  <!-- harness -->
+  <rect x="20" y="40" width="240" height="150" rx="2" fill="var(--surface)" stroke="var(--det)" stroke-width="1.5"/>
+  <text x="140" y="26" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.2" fill="var(--det)">Personal_Agent</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink)">
+    <text x="38" y="66">core/commands/</text>
+    <text x="38" y="88">core/agents/</text>
+    <text x="38" y="110">core/scripts/</text>
+    <text x="38" y="138">adapters/</text>
+    <text x="38" y="160">templates/</text>
+  </g>
+  <line x1="38" y1="122" x2="242" y2="122" stroke="var(--line)"/>
+  <text x="140" y="182" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="10" fill="var(--faint)">프로젝트 이름 0건이 목표</text>
+
+  <!-- project -->
+  <rect x="640" y="40" width="240" height="150" rx="2" fill="var(--surface)" stroke="var(--rule)" stroke-width="1.5"/>
+  <text x="760" y="26" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.2" fill="var(--faint)">대상 프로젝트</text>
+  <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink)">
+    <text x="658" y="66">.claude/project.json</text>
+    <text x="658" y="88">.claude/commands/</text>
+    <text x="658" y="110">.claude/local/</text>
+    <text x="658" y="138">CLAUDE.md</text>
+    <text x="658" y="160">tests/</text>
+  </g>
+  <line x1="658" y1="122" x2="862" y2="122" stroke="var(--line)"/>
+  <text x="760" y="182" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="10" fill="var(--faint)">지식은 여기서만 산다</text>
+
+  <!-- 설치 -->
+  <path d="M262 88 L636 88" stroke="#0E6B6B" stroke-width="1.6" fill="none" marker-end="url(#a9)"/>
+  <text x="449" y="78" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--det)">install</text>
+  <text x="449" y="106" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="10" fill="var(--muted)">core/ 복사 + 해시 기록</text>
+
+  <!-- 역수출 -->
+  <path d="M636 142 L262 142" stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#a8)" stroke-dasharray="5 3"/>
+  <text x="449" y="132" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink)">diff &rarr; pull</text>
+  <text x="449" y="160" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="10" fill="var(--muted)">거기서 고친 것을 되가져온다</text>
+
+  <text x="449" y="222" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="11.5" fill="var(--ink)">역방향이 없으면 도구가 아니라 스냅샷이다</text>
+  <text x="449" y="243" text-anchor="middle" font-family="IBM Plex Sans KR, sans-serif" font-size="10.5" fill="var(--muted)">실행하다 발견한 버그는 그 프로젝트에서 고쳐지고, 다른 프로젝트로는 전파되지 않는다</text>
+</svg>
+</div>
+<figcaption><b>도판 8</b>설치는 단방향이 아니다. 실전에서 발견한 수정이 저장소로 돌아오는 경로가 있어야 여러 프로젝트가 같은 개선을 공유한다.</figcaption>
+</figure>
+
+<h3>새 프로젝트 셋업</h3>
+<div class="tw">
+<table>
+<thead><tr><th class="num-col">단계</th><th>명령</th><th>하는 일</th><th>사람 개입</th></tr></thead>
+<tbody>
+<tr><td class="num-col mono">1</td><td class="mono">harness init --adapter …</td><td>project.json 생성, 명령 기본값 채움</td><td><span class="tag t-none">없음</span></td></tr>
+<tr><td class="num-col mono">2</td><td class="mono">harness scan</td><td>소스 트리에서 도메인 목록 초안 추출</td><td><span class="tag t-none">없음</span></td></tr>
+<tr><td class="num-col mono">3</td><td>&mdash;</td><td>애매한 항목만 손본다</td><td><span class="tag t-write">여기만</span></td></tr>
+<tr><td class="num-col mono">4</td><td class="mono">harness install</td><td>core/ 복사 + 버전·해시 기록</td><td><span class="tag t-none">없음</span></td></tr>
+<tr><td class="num-col mono">5</td><td class="mono">harness doctor</td><td>명령·도구·도메인 목록 존재 확인</td><td><span class="tag t-none">없음</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>
+  <strong>3번만 사람이 한다.</strong> 도메인 목록은 폴더 구조에서 뽑히고,
+  사람이 판단할 것은 이름만으로 소속이 안 갈리는 소수 파일뿐이다.
+  이 단계까지가 하루가 안 걸리는 일이고, 그 뒤 <code>CLAUDE.md</code>와 회귀 테스트를 채우는 것은
+  원래 프로젝트마다 새로 하는 일이라 이식 대상이 아니다.
+</p>
+</section>
+
+<!-- ═══════════════ 11 ═══════════════ -->
+<section id="now">
+<h2><span class="num">11</span>현재 상태</h2>
+<p class="lede">
+  2026-08-31 안드로이드 프로젝트에서 <strong>있는 그대로</strong> 반입한 뒤 1&ndash;2단계를 실행했다.
+  원본은 첫 커밋에 그대로 남아 있어 언제든 되돌릴 수 있다.
+  제품 전용 자산은 <code>core/</code> 밖으로 나갔지만 남은 파일에는 아직 고유어가 있다.
+  아래는 반입 시점 실측이고, <code>tools/</code> 로 옮긴 두 줄은 뺐다.
+</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>파일</th><th class="num-col">고유어</th><th>성격</th></tr></thead>
+<tbody>
+<tr><td class="mono">core/commands/feature.md</td><td class="num-col">24</td><td>프레임워크·테스트태그 언급</td></tr>
+<tr><td class="mono">core/commands/fix.md</td><td class="num-col">22</td><td>appId, 크래시 provider, 에이전트 이름</td></tr>
+<tr><td class="mono">core/scripts/runtime_gate.sh</td><td class="num-col">16</td><td>빌드·설치·재생 명령 5줄</td></tr>
+<tr><td class="mono">core/agents/*-spec</td><td class="num-col">12</td><td>도메인 예시</td></tr>
+<tr><td class="mono">core/commands/modernize.md</td><td class="num-col">11</td><td>특정 프레임워크 전환 전용</td></tr>
+<tr><td class="mono">나머지 에이전트 12개</td><td class="num-col">1&ndash;7</td><td>대부분 이름과 예시</td></tr>
+<tr><td class="mono">core/scripts/domains_for.py</td><td class="num-col">1</td><td>+ 도메인 표 전체가 코드 안에</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>2단계에서 실제로 옮긴 것</h3>
+<div class="tw">
+<table>
+<thead><tr><th>대상</th><th class="num-col">개수</th><th>처리</th></tr></thead>
+<tbody>
+<tr><td class="mono">i18n 검사 6개, 크래시 헌트 2개</td><td class="num-col">8</td><td><code>tools/</code> 로 이동 &mdash; 파이프라인이 아니라 QA 도구다. 버리지 않는다</td></tr>
+<tr><td class="mono">남의 플러그인 커맨드</td><td class="num-col">4</td><td>삭제 &mdash; 플러그인으로 이미 설치돼 있어 사본은 낡은 포크가 된다</td></tr>
+<tr><td class="mono">도메인 전제 커맨드 1개</td><td class="num-col">1</td><td>삭제 &mdash; 13줄 전부가 특정 제품 도메인 전제</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code>core/commands/  11 -&gt; 6   fix, feature, modernize, log, deep, study
+core/scripts/   14 -&gt; 6   changelog_append, domains_for, metrics,
+                          parse_runner, record_metric, runtime_gate</code></pre>
+<p>남는 스크립트 6개가 정확히 오케스트레이션 골격이다.</p>
+
+<h3>3&ndash;5단계에서 바뀐 것</h3>
+<p>
+  <code>core/</code> 는 이제 <strong>무엇을 어떤 순서로 판정하는지</strong>만 안다.
+  어떤 명령으로 하는지는 어댑터가, 그 명령의 빈칸은 <code>project.json</code> 이 답한다.
+</p>
+<div class="tw">
+<table>
+<thead><tr><th>층</th><th>답하는 질문</th><th>바뀌는 주기</th></tr></thead>
+<tbody>
+<tr><td class="mono">core/</td><td>어떤 순서로 무엇을 판정하는가</td><td>방법론이 바뀔 때만</td></tr>
+<tr><td class="mono">adapters/&lt;스택&gt;.json</td><td>그 일을 어떤 명령으로 하는가</td><td>스택을 바꿀 때</td></tr>
+<tr><td class="mono">.claude/project.json</td><td>그 명령의 빈칸에 무엇을 넣는가</td><td>프로젝트마다</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="note-h">설정이 없을 때가 설계의 시험대다</span>
+  무엇이 안전인지는 스크립트마다 다르다. 도메인 매핑은 모르면 <strong>넓게</strong> 도는 것이 안전하고(<code>ALL</code>),
+  런타임 게이트는 모르면 <strong>멈추는</strong> 것이 안전하다(<code>exit 3</code>).
+  로더가 둘을 통일해 예외를 던지면 게이트가 조용히 SKIP 되어 초록불이 켜진다.
+  그래서 로더는 성패만 알리고 판단은 부르는 쪽이 한다.
+</div>
+
+<p>
+  검증은 눈이 아니라 명령으로 한다. 저장소 루트의 <code>check.sh</code> 가
+  회사 식별자 0건, 하드코딩된 스택 명령 0건, 에이전트 접두사 0개,
+  설정 없을 때의 종료값 세 가지를 확인한다.
+</p>
+
+<h3>정리 순서</h3>
+<ol>
+  <li><s><strong>원본 커밋</strong> &mdash; 되돌릴 기준선 확보</s> &mdash; 완료</li>
+  <li><s>제외 대상 정리 &mdash; 삭제 5개, <code>tools/</code> 로 이동 8개</s> &mdash; 완료</li>
+  <li><s><code>project.json</code> 도입 &mdash; 도메인 표와 명령을 코드 밖으로</s> &mdash; 완료</li>
+  <li><s><code>adapters/</code> 분리 &mdash; 빌드·재생 명령을 어댑터 파일로</s> &mdash; 완료</li>
+  <li><s>에이전트 개명 13개 &mdash; 제품 접두사 제거</s> &mdash; 완료 (3&ndash;4단계보다 먼저 실행)</li>
+  <li><strong>(다음)</strong> <code>bin/harness</code> CLI</li>
+</ol>
+
+<div class="note">
+  <span class="note-h">6번은 아직 이르다</span>
+  프로젝트가 하나뿐인데 배포 도구부터 만들 이유가 없다.
+  1&ndash;5만 해도 &ldquo;복사해서 손으로 채우면 도는&rdquo; 상태가 되고,
+  두 번째 프로젝트가 실제로 생겼을 때 무엇이 정말 불편한지 알게 된 다음에 CLI를 만드는 편이 낫다.
+</div>
+
+<h3>검증되지 않은 것</h3>
+<p>
+  <code>/fix --build</code>는 실기기에서 완주했다 &mdash; 세션 격리, 인테이크 분기,
+  빌드 성공 시 조기 종료까지 확인됐고 진행 중이던 코드는 건드리지 않았다.
+  다만 <strong>explorer 이후 경로와 런타임 게이트 전체는 아직 실전에서 안 돌았다.</strong>
+  실제 에러나 실패하는 테스트가 있을 때 확인된다.
+</p>
+<p>
+  일반화 이후로는 더 좁다. 새 게이트는 <strong>스텁 어댑터로만</strong> 완주를 확인했다 &mdash;
+  배포/재생/커버리지/NO_FLOW/설정 없음 경로가 각각 의도한 종료값을 냈다.
+  <strong>실제 프로젝트에 다시 얹어 완주시킨 적은 없다.</strong> 그것이 다음 검증이다.
+</p>
+
+<footer>
+  이 문서는 <code>Personal_Agent/docs/architecture.html</code> 에 있다.
+  구조가 바뀌면 같은 작업 안에서 여기도 고친다 &mdash; 문서가 코드보다 오래 살아남으면
+  다음 사람이 틀린 그림을 믿는다.
+</footer>
+</section>
+</main>
+</div>
