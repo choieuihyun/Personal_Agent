@@ -33,14 +33,53 @@ AI 코딩 에이전트를 프로젝트에 붙이는 방법론 저장소.
 ## 얹는 법
 
 ```bash
-cp -r core/* <대상 프로젝트>/.claude/
-cp -r adapters <대상 프로젝트>/.claude/
-cp templates/project.json.tmpl <대상 프로젝트>/.claude/project.json
-# project.json 을 채운다. 각 키의 뜻은 templates/README.md 에 있다
+H=<이 저장소 경로>
+cd <대상 프로젝트>
+
+cp -r "$H/core/agents"   .claude/agents
+cp -r "$H/core/commands" .claude/commands
+cp -r "$H/core/scripts"  .claude/scripts
+cp -r "$H/adapters"      .claude/adapters
+cp "$H/templates/project.json.tmpl" .claude/project.json
+
+echo ".claude/state/" >> .gitignore    # 실행 상태는 커밋하지 않는다
 ```
 
+에이전트는 `.claude/agents/<이름>/AGENT.md` 형태 그대로 로드된다.
+Claude Code 는 `.claude/agents/*.md` 를 하위 디렉토리까지 훑고, 식별자는 파일명이 아니라
+frontmatter 의 `name` 이다. 같은 디렉토리 안에서 `name` 이 겹치면 하나가 조용히 버려지므로
+에이전트마다 폴더를 따로 둔다.
+
+### project.json 채우기
+
+전부 채울 필요는 없다. 이 순서로 하면 단계마다 확인하면서 갈 수 있다.
+
+1. `adapter` — `adapters/` 의 파일명. E2E 개념이 없는 프로젝트면 `"runtime_gate": false` 로 끄고 넘어간다
+2. `e2e.dir` 과 `vars` — 어댑터 명령의 빈칸. 안 채우면 게이트가 실행 전에 멈춘다 (반쪽 명령을 돌리지 않는다)
+3. `domains` — 여기서부터 재생이 좁아진다. 안 채우면 매번 전체 회귀다
+4. `forbidden_globs`, `ui_test_id`, `docs.*` — 게이트 밖 규칙들
+
+확인은 이렇게 한다.
+
+```bash
+python3 .claude/scripts/domains_for.py --self-check          # 도메인 목록이 실제 폴더와 맞나
+python3 .claude/scripts/domains_for.py src/features/chat/A.ts # 태그가 제대로 나오나
+python3 .claude/scripts/e2e_tags.py --coverage e2e            # 시나리오가 덮는 도메인
+bash .claude/scripts/runtime_gate.sh .claude/state/probe ""   # 게이트가 도나
+```
+
+### 안 채웠을 때 무엇이 일어나는가
+
 설정이 비어 있어도 파이프라인은 돈다. 다만 **모르는 것을 아는 척하지 않는다.**
-도메인 매핑을 모르면 전체 회귀(ALL)로 넓히고, 런타임 게이트는 설정이 없으면 통과가 아니라 오류로 끝난다.
+
+| 상황 | 결과 | 왜 |
+|---|---|---|
+| `domains` 없음 | 전부 `ALL` (전체 회귀) | 좁혀서 회귀를 놓치는 것보다 느린 게 낫다 |
+| `adapter` 없음 | 게이트 `exit 3`, `gate_error: bad_config` | 통과가 아니다. 조용히 SKIP 되면 초록불로 오인된다 |
+| `runtime_gate: false` | `skipped`, `exit 0` | 안 쓰기로 한 것은 정상이다. 보고에 SKIP 으로 남는다 |
+| `vars` 빈칸 | 게이트 `exit 3`, `unfilled_vars` | 반쪽 명령을 실행하지 않는다 |
+| `dod_checks` 없음 | `exit 2` (`DOD_NO_RULES`) | 검사하지 않은 것과 통과한 것은 다르다 |
+
 채우는 만큼 좁고 빨라지는 구조다.
 
 ## 상태

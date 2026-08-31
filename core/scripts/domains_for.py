@@ -32,9 +32,15 @@ import harness_config
 
 def rules_of(cfg):
     # 설정에서 규칙 두 종류를 꺼낸다. 없으면 빈 목록 (즉 전부 ALL).
+    #
+    # under 가 비어 있는 항목은 규칙이 아니라 **안 채운 빈칸**이다. 템플릿의 예시 뼈대가 그대로 남은 것이다.
+    # 이걸 규칙으로 받으면 빈 문자열이 "경로 전체" 로 해석돼 첫 디렉토리 이름을 도메인으로 잡는다.
+    # 그러면 설정을 안 했는데도 엉뚱한 태그로 좁혀 재생하고, 커버리지 없는 통과가 만들어진다.
+    # 안 채운 빈칸은 모르는 것이므로 없는 것으로 친다 (-> ALL).
     domains = (cfg or {}).get("domains") or {}
-    dir_rules = domains.get("dir_rules") or []
-    prefix_rules = domains.get("prefix_rules") or []
+    dir_rules = [r for r in (domains.get("dir_rules") or []) if (r.get("under") or "").strip()]
+    prefix_rules = [r for r in (domains.get("prefix_rules") or [])
+                    if (r.get("under") or "").strip() and (r.get("map") or {})]
     return dir_rules, prefix_rules
 
 

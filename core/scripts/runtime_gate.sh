@@ -88,9 +88,17 @@ HC_OK=0
 HC_ERROR="설정 로드 실패"
 eval "$(python3 "$SCRIPT_DIR/harness_config.py" --export "$PROJECT_DIR" 2>/dev/null)"
 
+# HC_OK=2 는 "이 프로젝트는 런타임 게이트를 쓰지 않는다" 는 명시적 선언이다.
+# 통과(SUCCESS)가 아니라 SKIP 으로 기록한다. 보고에 그 사실이 남아야 초록불로 오인되지 않는다.
+if [ "${HC_OK:-0}" = "2" ]; then
+  echo "SKIP: 런타임 게이트가 꺼져 있음 (project.json 의 runtime_gate=false)."
+  write_runner "null" "null" "true" "gate_disabled" "false" "null"
+  exit 0
+fi
+
 if [ "${HC_OK:-0}" != "1" ]; then
   echo "ERROR: ${HC_ERROR:-설정 로드 실패}"
-  echo "       templates/project.json.tmpl 을 .claude/project.json 으로 복사해 채운다."
+  echo "       .claude/project.json 을 채운다 (키 설명은 하네스의 templates/README.md)."
   write_runner "null" "null" "false" "null" "false" "null" "bad_config"
   exit 3
 fi

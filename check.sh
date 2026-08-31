@@ -56,6 +56,8 @@ done
 echo "[6] 설정 없을 때의 안전 기본값"
 chk "domains_for.py 출력" "ALL" "$(cd /tmp && python3 "$REPO/core/scripts/domains_for.py" a/b/c.txt)"
 chk "domains_for.py 종료코드" 0 "$(cd /tmp && python3 "$REPO/core/scripts/domains_for.py" a/b/c.txt >/dev/null 2>&1; echo $?)"
+# 안 채운 템플릿을 그대로 쓰면 규칙이 있는 것처럼 보인다. 그때도 ALL 이어야 한다.
+chk "빈 템플릿으로도 ALL" "ALL" "$(HARNESS_PROJECT_JSON="$REPO/templates/project.json.tmpl" python3 "$REPO/core/scripts/domains_for.py" src/features/chat/A.ts)"
 PROBE="$(mktemp -d)"
 ( unset HARNESS_PROJECT_JSON; bash core/scripts/runtime_gate.sh "$PROBE/s" "$PROBE" >/dev/null 2>&1 )
 chk "runtime_gate.sh 종료코드(설정없음)" 3 "$?"

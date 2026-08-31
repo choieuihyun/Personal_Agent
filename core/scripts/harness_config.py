@@ -127,11 +127,25 @@ def export_main(argv):
         print("HC_ERROR=%s" % _sh("project.json 을 찾지 못했거나 읽을 수 없다"))
         return 0
 
+    # 런타임 게이트를 쓰지 않기로 한 프로젝트 (E2E 개념이 없는 라이브러리 등).
+    # "설정을 안 했다" 와 "안 쓰기로 했다" 는 다른 사건이다. 전자는 오류(exit 3), 후자는 정상 SKIP 이다.
+    # 이 구분이 없으면 게이트가 매번 실패해 파이프라인이 사람 손을 부른다.
+    if cfg.get("runtime_gate") is False:
+        print("HC_OK=2")
+        print("HC_CONFIG=%s" % _sh(cfg.get("_path", "")))
+        print("HC_ERROR=%s" % _sh("project.json 에서 runtime_gate 를 끔"))
+        return 0
+
     ad = adapter(cfg)
     if ad is None:
         print("HC_OK=0")
         print("HC_CONFIG=%s" % _sh(cfg.get("_path", "")))
-        print("HC_ERROR=%s" % _sh("어댑터를 찾지 못했다 (project.json 의 adapter: %s)" % cfg.get("adapter")))
+        name = cfg.get("adapter")
+        if not name:
+            msg = "project.json 의 adapter 가 비어 있다. adapters/ 의 파일명을 적는다"
+        else:
+            msg = "어댑터 파일을 찾지 못했다: adapters/%s.json" % name
+        print("HC_ERROR=%s" % _sh(msg))
         return 0
 
     e2e_cfg = cfg.get("e2e") or {}
