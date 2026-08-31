@@ -33,17 +33,16 @@ AI 코딩 에이전트를 프로젝트에 붙이는 방법론 저장소.
 ## 얹는 법
 
 ```bash
-H=<이 저장소 경로>
-cd <대상 프로젝트>
-
-cp -r "$H/core/agents"   .claude/agents
-cp -r "$H/core/commands" .claude/commands
-cp -r "$H/core/scripts"  .claude/scripts
-cp -r "$H/adapters"      .claude/adapters
-cp "$H/templates/project.json.tmpl" .claude/project.json
-
-echo ".claude/state/" >> .gitignore    # 실행 상태는 커밋하지 않는다
+bash install.sh <대상 프로젝트>            # 무엇이 일어날지만 보려면 --dry-run
 ```
+
+`cp -r` 를 대신 쳐 주는 것이 목적이 아니다. `cp` 가 말해 주지 않는 것을 말하는 게 목적이다.
+
+- **대상에서 고친 파일이 있으면 멈춘다.** 목록을 보여주고 `--force` 를 요구한다.
+  대상에서 고친 것은 하네스로 먼저 옮긴다 (역수출). 안 그러면 조용히 사라진다
+- **`project.json` 은 이미 있으면 절대 덮지 않는다.** 채워 둔 설정이 날아가면 게이트가 통째로 멈춘다
+- 대상 전용 파일은 지우지 않는다. 복사는 덧쓰기지 미러링이 아니다
+- `.claude/state/` 를 `.gitignore` 에 넣고, 설치 직후 도메인 매핑과 게이트 상태를 확인해서 보여준다
 
 에이전트는 `.claude/agents/<이름>/AGENT.md` 형태 그대로 로드된다.
 Claude Code 는 `.claude/agents/*.md` 를 하위 디렉토리까지 훑고, 식별자는 파일명이 아니라

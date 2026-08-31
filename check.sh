@@ -64,7 +64,10 @@ chk "runtime_gate.sh 종료코드(설정없음)" 3 "$?"
 chk "runner.json gate_error" "bad_config" "$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['gate_error'])" "$PROBE/s/runner.json" 2>/dev/null)"
 chk "dod_check.py 종료코드(규칙없음)" 2 "$(python3 core/scripts/dod_check.py x >/dev/null 2>&1; echo $?)"
 echo "[7] 셸/파이썬 문법"
-for f in core/scripts/*.sh; do bash -n "$f" 2>/dev/null || { echo "  FAIL $f"; fail=1; }; done
+for f in core/scripts/*.sh tools/*/*.sh ./*.sh; do bash -n "$f" 2>/dev/null || { echo "  FAIL $f"; fail=1; }; done
+# 셸에서 $VAR 뒤에 한글이 바로 붙으면 변수명의 일부로 파싱된다 ($n개 -> n개).
+# 한글 주석을 쓰는 저장소라서 반드시 걸린다. 중괄호로 감싸야 한다.
+chk "\$변수 뒤 한글 (중괄호 누락)" 0 "$(grep -rlP '\$[A-Za-z_][A-Za-z0-9_]*[가-힣]' --include='*.sh' . 2>/dev/null | wc -l | tr -d ' ')"
 for f in core/scripts/*.py; do python3 -c "import ast,io;ast.parse(io.open('$f',encoding='utf-8').read())" 2>/dev/null || { echo "  FAIL $f"; fail=1; }; done
 [ $fail = 0 ] && echo "  OK   전 스크립트 문법"
 echo

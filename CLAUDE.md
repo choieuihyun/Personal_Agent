@@ -44,6 +44,7 @@ core/           프로젝트 무관. 대상 프로젝트의 .claude/ 로 복사�
 adapters/       스택별 명령 묶음 (android-gradle-maestro, node-vite-playwright, python-pytest)
 templates/      project.json 템플릿과 키 설명
 tools/          파이프라인 밖 QA 도구 (i18n 검사, 크래시 헌트). 대상 프로젝트로 복사되지 않는다
+install.sh      대상 프로젝트에 설치. 덮으면 사라지는 것을 먼저 알린다
 check.sh        저장소 자기 검사. core 에 고유어가 다시 들어오면 여기서 걸린다
 bin/            설치·갱신·진단 CLI (아직 없음)
 ```
@@ -266,7 +267,9 @@ NO_FLOW, 워크트리 표식 없음, 설정 없음 세 경로도 각각 exit 0 /
 3. ~~`project.json` 도입 - 도메인 표와 빌드 명령을 코드 밖으로~~ **완료**
 4. ~~`adapters/` 분리 - 빌드/설치/스모크/E2E 명령을 어댑터 파일로~~ **완료**
 5. ~~에이전트 개명 13개 + 보류 2개 일반화~~ **완료** (3~4단계보다 먼저 실행했다)
-6. **(다음)** `bin/harness` CLI - init / scan / install / doctor / diff / pull
+6. **(다음)** `bin/harness` CLI - init / scan / doctor / diff / pull
+   (install 은 `install.sh` 로 먼저 나왔다. 복사 한 줄은 배포 도구가 아니라서
+   두 번째 프로젝트를 기다릴 이유가 없었다. 나머지 다섯은 여전히 이르다)
 
 **두 번째 프로젝트가 생기기 전까지 6번은 이르다.** 프로젝트가 하나뿐인데 배포 도구부터 만들지 않는다.
 지금 상태로 이미 "복사해서 project.json 채우면 도는" 상태다. CLI 는 그 복사가 귀찮아진 다음에 만든다.
