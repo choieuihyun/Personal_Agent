@@ -23,7 +23,8 @@
 | 어댑터 | 대상 | 상태 |
 |---|---|---|
 | `android-gradle-maestro.json` | 안드로이드 앱 | 실제 프로젝트에서 검증됨 |
-| `node-vite-playwright.json` | 웹 앱 | 스키마만 맞춤. 실전 완주 전 |
-| `python-pytest.json` | 대상 밖 | 스키마가 다른 스택에도 맞는지 확인용. 정식 지원 아님 |
+| `node-vite-playwright.json` | 웹 앱 | 가짜 러너로 게이트 완주 확인. 실전 완주 전 |
+| `python-pytest.json` | 파이썬 서버, 라이브러리 | 스키마만 맞춤. 실전 완주 전 |
 
-지원 범위는 안드로이드와 웹이다 (저장소 README 의 대상 범위 참고).
+대상은 모든 프로젝트다 (저장소 README 의 대상 범위 참고). 목록에 없는 스택은 이 형식으로 어댑터를 새로 쓴다.
+올리기가 없는 유형은 `deploy` 를, 실행 대상 개념이 없는 유형은 `device` 를 null 로 둔다.
