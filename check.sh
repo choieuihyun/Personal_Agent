@@ -69,6 +69,16 @@ RG_SESSION="$PROBE/r" RG_REPORT="$PROBE/r/none.xml" RG_INSTALL=null RG_REPLAY=fa
   RG_NOFLOW=false RG_EEXIT=1 python3 core/scripts/parse_runner.py >/dev/null 2>&1
 chk "리포트 없는 재생 실패는 실패로 남는다" "False False" "$(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print(r['replay_success'],r['no_flow'])" "$PROBE/r/runner.json" 2>/dev/null)"
 chk "리포트 없음 표시 (report_found)" "False" "$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('report_found'))" "$PROBE/r/runner.json" 2>/dev/null)"
+# 게이트를 끈 프로젝트도 builder 는 빌드 명령을 받아야 한다. 게이트 쪽은 여전히 SKIP 이어야 한다.
+mkdir -p "$PROBE/off"
+printf '{"runtime_gate": false, "adapter_inline": {"name": "probe", "build": "true"}}' > "$PROBE/off/p.json"
+chk "게이트 꺼도 빌드 명령 전달" "2 true" "$(eval "$(HARNESS_PROJECT_JSON="$PROBE/off/p.json" python3 core/scripts/harness_config.py --export)"; echo "${HC_OK:-} ${HC_BUILD_CMD:-}")"
+( export HARNESS_PROJECT_JSON="$PROBE/off/p.json"; bash core/scripts/runtime_gate.sh "$PROBE/off/s" "$PROBE" >/dev/null 2>&1 )
+chk "게이트 꺼짐은 SKIP (exit 0)" 0 "$?"
+chk "게이트 꺼짐 skip_reason" "gate_disabled" "$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['skip_reason'])" "$PROBE/off/s/runner.json" 2>/dev/null)"
+# 어댑터가 깨져 있어도 끄기로 한 게이트는 SKIP 이다. 여기서 exit 3 이 나면 끈 프로젝트가 매번 멈춘다.
+printf '{"runtime_gate": false, "adapter": "없는어댑터"}' > "$PROBE/off/bad.json"
+chk "게이트 꺼짐 + 어댑터 없음도 HC_OK=2" 2 "$(eval "$(HARNESS_PROJECT_JSON="$PROBE/off/bad.json" python3 core/scripts/harness_config.py --export)"; echo "${HC_OK:-}")"
 echo "[7] 셸/파이썬 문법"
 for f in core/scripts/*.sh tools/*/*.sh ./*.sh; do bash -n "$f" 2>/dev/null || { echo "  FAIL $f"; fail=1; }; done
 # 셸에서 $VAR 뒤에 한글이 바로 붙으면 변수명의 일부로 파싱된다 ($n개 -> n개).

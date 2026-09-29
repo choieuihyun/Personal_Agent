@@ -21,6 +21,7 @@ json 에는 주석을 못 쓰므로 설명은 여기 둔다.
 | `project.app_id` | 설치/실행 대상 식별자 (앱 패키지, 서비스 이름 등) | 어댑터 명령에서 이 값을 쓰면 빈칸이 남아 실행 전에 막힌다 |
 | `project_root` | 저장소 루트 절대경로. 비우면 `.claude` 의 상위로 잡는다 | 자동 산출 |
 | `adapter` | `adapters/<이름>.json` 의 파일명 | 런타임 게이트가 명령을 몰라 exit 3 |
+| `adapter_inline` | 어댑터 파일 대신 project.json 안에 직접 적는 어댑터 객체. 있으면 `adapter` 보다 먼저 쓴다. 대상 범위 밖 프로젝트(라이브러리 등)에 `runtime_gate: false` 와 함께 `{"name": ..., "build": "<테스트 명령>"}` 만 적을 때 쓴다 | `adapter` 를 쓴다 |
 | `runtime_gate` | 런타임 게이트를 쓸지. E2E 개념이 없는 프로젝트는 `false` | `true` 로 보고 어댑터를 요구한다 |
 | `vars` | 어댑터 명령의 빈칸을 채우는 값. `{BUILD_TASK}` 같은 자리 | 빈칸이 남으면 게이트가 실행 전에 멈춘다 |
 | `env` | 게이트 실행 전에 export 할 환경변수 | 생략 |

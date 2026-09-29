@@ -32,10 +32,14 @@ CLAUDE_PROJECT_DIR 은 호출 시점의 프로젝트 루트다. 없으면 현재
 ```bash
 REPO="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 eval "$(python3 "$REPO/.claude/scripts/harness_config.py" --export "$REPO")"
-[ "${HC_OK:-0}" = "1" ] || { echo "설정 로드 실패: ${HC_ERROR:-}"; exit 1; }
+case "${HC_OK:-0}" in 1|2) ;; *) echo "설정 로드 실패: ${HC_ERROR:-}"; exit 1 ;; esac
+[ -n "${HC_BUILD_CMD:-}" ] || { echo "빌드 명령이 비어 있다 (어댑터의 build 확인)"; exit 1; }
 [ -z "${HC_MISSING_BUILD:-}" ] || { echo "빌드 명령에 안 채워진 빈칸: $HC_MISSING_BUILD"; exit 1; }
 cd "$REPO" && eval "$HC_BUILD_CMD" 2>&1
 ```
+
+`HC_OK=2` 는 런타임 게이트만 끈 것이다. 빌드는 그대로 한다.
+빌드 명령이 비어 있으면 성공으로 보고하지 않는다. 빈 명령은 종료코드 0 으로 끝나서 아무것도 안 빌드한 채 초록불이 된다.
 
 설정을 못 읽거나 명령에 빈칸이 남아 있으면 빌드를 시도하지 않고 실패로 보고한다.
 임의의 명령을 추측해 돌리면 무엇을 빌드했는지 알 수 없게 된다.

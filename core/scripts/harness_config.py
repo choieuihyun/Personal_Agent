@@ -130,13 +130,24 @@ def export_main(argv):
     # 런타임 게이트를 쓰지 않기로 한 프로젝트 (E2E 개념이 없는 라이브러리 등).
     # "설정을 안 했다" 와 "안 쓰기로 했다" 는 다른 사건이다. 전자는 오류(exit 3), 후자는 정상 SKIP 이다.
     # 이 구분이 없으면 게이트가 매번 실패해 파이프라인이 사람 손을 부른다.
+    #
+    # 게이트를 꺼도 빌드는 한다. builder 는 이 로더에서 빌드 명령을 받으므로 여기서 끊으면 빌드까지 멈춘다.
+    # 그래서 어댑터를 읽을 수 있으면 빌드 명령과 환경변수는 내보낸다.
+    # 단 HC_OK 는 어댑터 성패와 무관하게 2 로 둔다. 어댑터가 깨졌다고 0 으로 바꾸면
+    # 끄기로 한 게이트가 exit 3 으로 멈춘다. 빌드 명령이 비는 것은 builder 가 따로 막는다.
+    ad = adapter(cfg)
     if cfg.get("runtime_gate") is False:
         print("HC_OK=2")
         print("HC_CONFIG=%s" % _sh(cfg.get("_path", "")))
         print("HC_ERROR=%s" % _sh("project.json 에서 runtime_gate 를 끔"))
+        if ad is not None:
+            print("HC_ADAPTER=%s" % _sh(ad.get("name", "")))
+            print("HC_BUILD_CMD=%s" % _sh(expand(ad.get("build") or "", cfg)))
+            print("HC_MISSING_BUILD=%s" % _sh(" ".join(missing_vars(ad.get("build") or "", cfg))))
+            print("HC_PROJECT_NAME=%s" % _sh((cfg.get("project") or {}).get("name") or ""))
+            _print_env(cfg, ad)
         return 0
 
-    ad = adapter(cfg)
     if ad is None:
         print("HC_OK=0")
         print("HC_CONFIG=%s" % _sh(cfg.get("_path", "")))
@@ -189,6 +200,11 @@ def export_main(argv):
     for k, v in out:
         print("%s=%s" % (k, _sh(v)))
 
+    _print_env(cfg, ad)
+    return 0
+
+
+def _print_env(cfg, ad):
     # 환경변수. 있는 것만 export 한다
     for k, v in (cfg.get("env") or {}).items():
         print("export %s=%s" % (k, _sh(os.path.expandvars(str(v)))))
@@ -210,7 +226,6 @@ def export_main(argv):
             p = os.path.expandvars(os.path.expanduser(str(p).replace("{HOME}", "$HOME")))
             parts.append(p)
         print('export PATH=%s:"$PATH"' % _sh(":".join(parts)).replace("'", '"'))
-    return 0
 
 
 if __name__ == "__main__":
