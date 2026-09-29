@@ -165,7 +165,10 @@ if [ -n "$TAGS" ] && [ "$TAGS" != "ALL" ]; then
     write_runner "null" "null" "false" "null" "true" "null"
     exit 0
   fi
-  TAG_OPT="${HC_TAG_OPT//\{TAGS\}/$TAGS}"
+  # 도메인 태그는 콤마로 오지만 러너가 받는 구분자는 어댑터가 정한다 (tag_join).
+  # 콤마를 그대로 넘기면 정규식으로 받는 러너에서는 아무 시나리오도 안 골라진다.
+  JOINED_TAGS="${TAGS//,/${HC_TAG_JOIN:-,}}"
+  TAG_OPT="${HC_TAG_OPT//\{TAGS\}/$JOINED_TAGS}"
   echo "선택적 재생: ${TAG_OPT} (해당 시나리오 ${TAG_MATCH}개)"
 else
   FULL_REGRESSION="true"

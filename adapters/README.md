@@ -11,6 +11,15 @@
 | `smoke` | 켜지는지만 어떻게 확인하나 |
 | `e2e` | 동작을 어떻게 재생하나 |
 
+`e2e` 안에서 스택마다 문법이 갈리는 곳:
+
+| 키 | 뜻 | 예 |
+|---|---|---|
+| `command` | 재생 명령. `{REPORT_XML}` 자리에 JUnit 리포트를 **파일로** 남겨야 한다. 화면에만 찍으면 게이트는 결과를 못 읽는다 | playwright 는 `PLAYWRIGHT_JUNIT_OUTPUT_NAME` 으로 경로를 준다 |
+| `tag_option` | 태그로 좁힐 때 붙는 옵션. `{TAGS}` 자리에 태그가 들어간다 | `--include-tags={TAGS}` |
+| `tag_join` | 태그 여러 개를 잇는 구분자. 생략하면 콤마 | playwright 는 정규식이라 `\|`, pytest 는 ` or ` |
+| `tag_scan` | 시나리오 파일에서 태그를 읽는 규칙. import 경로 같은 것이 태그로 잡히지 않게 한다 | `@playwright/test` 가 도메인 `playwright` 로 잡히면 안 된다 |
+
 | 어댑터 | 대상 | 상태 |
 |---|---|---|
 | `android-gradle-maestro.json` | 안드로이드 앱 | 실제 프로젝트에서 검증됨 |

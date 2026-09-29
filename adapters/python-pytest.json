@@ -12,7 +12,8 @@
       "test_*.py"
     ],
     "command": "python3 -m pytest {E2E_PATH} {TAG_OPT} --junitxml={REPORT_XML}",
-    "tag_option": "-m {TAGS}",
+    "tag_option": "-m \"{TAGS}\"",
+    "tag_join": " or ",
     "tag_scan": {
       "kind": "regex",
       "pattern": "@pytest\\.mark\\.([A-Za-z0-9_]+)"

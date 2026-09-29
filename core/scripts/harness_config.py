@@ -187,6 +187,8 @@ def export_main(argv):
     out.append(("HC_E2E_GLOBS", " ".join(e2e_ad.get("file_globs") or [])))
     out.append(("HC_E2E_CMD", e2e_cmd))
     out.append(("HC_TAG_OPT", expand(e2e_ad.get("tag_option") or "", cfg)))
+    # 태그 여러 개를 러너에 넘길 때의 구분자. 러너마다 문법이 다르다 (콤마, 정규식 |, pytest 의 or)
+    out.append(("HC_TAG_JOIN", e2e_ad.get("tag_join") or ","))
     out.append(("HC_BUILD_CMD", build))
     out.append(("HC_DEPLOY_CMD", deploy))
     out.append(("HC_LOGS_CMD", ((ad.get("logs") or {}).get("command") or "")))

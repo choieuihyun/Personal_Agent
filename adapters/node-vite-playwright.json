@@ -12,11 +12,12 @@
       "*.spec.ts",
       "*.spec.js"
     ],
-    "command": "npx playwright test {E2E_PATH} {TAG_OPT} --reporter=junit",
-    "tag_option": "--grep={TAGS}",
+    "command": "PLAYWRIGHT_JUNIT_OUTPUT_NAME={REPORT_XML} npx playwright test {E2E_PATH} {TAG_OPT} --reporter=list,junit --output={DEBUG_DIR}",
+    "tag_option": "--grep=\"@({TAGS})(?![A-Za-z0-9_-])\"",
+    "tag_join": "|",
     "tag_scan": {
       "kind": "regex",
-      "pattern": "@([A-Za-z0-9_]+)"
+      "pattern": "(?<![A-Za-z0-9_@/.-])@([A-Za-z][A-Za-z0-9_-]*)(?![A-Za-z0-9_/.-])"
     },
     "report_format": "junit-xml",
     "artifact_globs": [

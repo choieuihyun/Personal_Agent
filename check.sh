@@ -79,6 +79,21 @@ chk "게이트 꺼짐 skip_reason" "gate_disabled" "$(python3 -c "import json,sy
 # 어댑터가 깨져 있어도 끄기로 한 게이트는 SKIP 이다. 여기서 exit 3 이 나면 끈 프로젝트가 매번 멈춘다.
 printf '{"runtime_gate": false, "adapter": "없는어댑터"}' > "$PROBE/off/bad.json"
 chk "게이트 꺼짐 + 어댑터 없음도 HC_OK=2" 2 "$(eval "$(HARNESS_PROJECT_JSON="$PROBE/off/bad.json" python3 core/scripts/harness_config.py --export)"; echo "${HC_OK:-}")"
+# 웹 어댑터를 실제 게이트로 돌린다. 러너는 인자를 기록하고 리포트만 쓰는 가짜로 바꾼다.
+# 원래 어댑터는 리포트를 파일로 안 남겨 항상 0/0 이었고, 태그를 콤마로 넘겨 아무것도 안 골랐고,
+# import 경로 '@playwright/test' 를 도메인으로 읽었다.
+W="$PROBE/web"; mkdir -p "$W/.claude" "$W/tests" "$PROBE/bin"
+cp -r adapters "$W/.claude/"
+printf '{"adapter": "node-vite-playwright", "e2e": {"dir": "tests"}}' > "$W/.claude/project.json"
+printf '{"name": "probe"}' > "$W/package.json"
+printf "import { test } from '@playwright/test'\ntest('a', { tag: '@auth' }, async () => {})\ntest('b', { tag: ['@cart'] }, async () => {})\n" > "$W/tests/a.spec.ts"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "%s/npx.args"\nprintf "<testsuites><testsuite><testcase name=\\"a\\"/></testsuite></testsuites>" > "$PLAYWRIGHT_JUNIT_OUTPUT_NAME"\n' "$PROBE" > "$PROBE/bin/npx"
+chmod +x "$PROBE/bin/npx"
+chk "웹 태그 판독 (import 경로 제외)" "auth,cart" "$(HARNESS_PROJECT_JSON="$W/.claude/project.json" python3 core/scripts/e2e_tags.py --coverage "$W/tests")"
+( export HARNESS_PROJECT_JSON="$W/.claude/project.json" PATH="$PROBE/bin:$PATH"; bash core/scripts/runtime_gate.sh "$PROBE/web/s" "$W" "auth,cart" >/dev/null 2>&1 )
+chk "웹 게이트 종료코드" 0 "$?"
+chk "웹 태그 여러 개는 정규식 | 로" 1 "$(grep -c '^--grep=@(auth|cart)' "$PROBE/npx.args" 2>/dev/null)"
+chk "웹 리포트가 파일로 남는다" "True 1" "$(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print(r.get('report_found'),r.get('flows_total'))" "$PROBE/web/s/runner.json" 2>/dev/null)"
 echo "[7] 셸/파이썬 문법"
 for f in core/scripts/*.sh tools/*/*.sh ./*.sh; do bash -n "$f" 2>/dev/null || { echo "  FAIL $f"; fail=1; }; done
 # 셸에서 $VAR 뒤에 한글이 바로 붙으면 변수명의 일부로 파싱된다 ($n개 -> n개).
