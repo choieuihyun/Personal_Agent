@@ -132,14 +132,21 @@ def main():
     junit = parse_junit(report_path)
     screenshot = find_screenshot(debug_dir) if replay_success is False else None
 
+    # 리포트 파일이 실제로 있었는지. 재생이 실패했는데 리포트가 없으면 러너가 리포트를 쓰기 전에 죽은 것이다.
+    # triage 가 "시나리오가 실패했다" 와 "러너 자체가 못 돌았다" 를 가를 근거로 쓴다.
+    report_found = bool(report_path) and os.path.exists(report_path)
+
     # 방어: 게이트가 정상적으로 돌았는데 testcase 가 0개면 실제 검증된 flow 가 없는 것이다.
     # (태그 매칭 0 등) 통과로 오인하지 않도록 no_flow 로 처리한다.
     # 단 게이트 자체가 실패한 경우(gate_error) 나 install 이 깨진 경우는 여기 해당하지 않는다.
     # 그때까지 no_flow 로 덮으면 "커버리지 없음(=통과)" 으로 오인돼 실패가 조용히 묻힌다.
+    # 재생이 실패한 경우(replay_success=false)도 마찬가지다. 러너가 리포트를 쓰기 전에 죽으면
+    # testcase 가 0개로 읽히는데, 이걸 no_flow 로 덮으면 비-UI 버그 경로에서 SUCCESS 가 된다.
     if (
         not skipped
         and gate_error is None
         and install_success is not False
+        and replay_success is not False
         and junit["flows_total"] == 0
     ):
         no_flow = True
@@ -161,6 +168,7 @@ def main():
         # 키 이름은 스택 중립이다. 이 키는 record_metric.py 와 metrics.py 도 읽으므로
         # 바꿀 때 세 파일을 같이 바꿔야 한다. 이름이 갈리면 집계가 조용히 0 이 된다.
         "e2e_exit_code": e2e_exit,
+        "report_found": report_found,
         "screenshot_path": screenshot,
         "gate_error": gate_error,
         # 재생 스코프. full_regression=true 면 ALL 경로로 돈 것이다.

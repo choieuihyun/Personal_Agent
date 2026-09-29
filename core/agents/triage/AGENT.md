@@ -102,7 +102,9 @@ confidence 가 LOW 이면 next_action 을 HUMAN_GATE 로 올린다.
 
 1. `<session_dir>/orchestrator.json` 읽어서 step_id, allowed_to_modify, 대상 화면 확인
 2. `<session_dir>/runner.json` 읽기 (배포 성공 여부, 실패 시나리오/step 확인)
-3. install_success=false 면 즉시 ENV_STATE 로 분류
+3. install_success=false 면 즉시 ENV_STATE 로 분류.
+   replay_success=false 인데 report_found=false 면 시나리오가 아니라 러너 자체가 리포트를 쓰기 전에 죽은 것이다.
+   failed_flow 가 비어 있으므로 시나리오 실패로 읽지 않는다. 런타임 로그로 원인을 보고 ENV_STATE 부터 의심한다
 4. screenshot_path 의 이미지를 Read 로 확인
 5. 필요 시 런타임 로그 조회로 크래시/예외 확인
 6. 우선순위(ENV_STATE→FLOW_ERROR→FLAKY→REAL_BUG)대로 배제하며 분류 확정

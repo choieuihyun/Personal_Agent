@@ -63,6 +63,12 @@ PROBE="$(mktemp -d)"
 chk "runtime_gate.sh 종료코드(설정없음)" 3 "$?"
 chk "runner.json gate_error" "bad_config" "$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['gate_error'])" "$PROBE/s/runner.json" 2>/dev/null)"
 chk "dod_check.py 종료코드(규칙없음)" 2 "$(python3 core/scripts/dod_check.py x >/dev/null 2>&1; echo $?)"
+# 러너가 리포트를 쓰기 전에 죽은 경우. testcase 0개라고 no_flow 로 덮으면 비-UI 경로에서 SUCCESS 가 된다.
+mkdir -p "$PROBE/r"
+RG_SESSION="$PROBE/r" RG_REPORT="$PROBE/r/none.xml" RG_INSTALL=null RG_REPLAY=false RG_SKIPPED=false \
+  RG_NOFLOW=false RG_EEXIT=1 python3 core/scripts/parse_runner.py >/dev/null 2>&1
+chk "리포트 없는 재생 실패는 실패로 남는다" "False False" "$(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print(r['replay_success'],r['no_flow'])" "$PROBE/r/runner.json" 2>/dev/null)"
+chk "리포트 없음 표시 (report_found)" "False" "$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('report_found'))" "$PROBE/r/runner.json" 2>/dev/null)"
 echo "[7] 셸/파이썬 문법"
 for f in core/scripts/*.sh tools/*/*.sh ./*.sh; do bash -n "$f" 2>/dev/null || { echo "  FAIL $f"; fail=1; }; done
 # 셸에서 $VAR 뒤에 한글이 바로 붙으면 변수명의 일부로 파싱된다 ($n개 -> n개).
