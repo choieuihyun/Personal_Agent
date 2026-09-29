@@ -11,6 +11,10 @@
 | `smoke` | 켜지는지만 어떻게 확인하나 |
 | `e2e` | 동작을 어떻게 재생하나 |
 
-예정: `android-gradle-maestro.json` / `node-vite-playwright.json` / `python-pytest.json`
+| 어댑터 | 대상 | 상태 |
+|---|---|---|
+| `android-gradle-maestro.json` | 안드로이드 앱 | 실제 프로젝트에서 검증됨 |
+| `node-vite-playwright.json` | 웹 앱 | 스키마만 맞춤. 실전 완주 전 |
+| `python-pytest.json` | 대상 밖 | 스키마가 다른 스택에도 맞는지 확인용. 정식 지원 아님 |
 
-4단계에서 `runtime_gate.sh` 에 박혀 있는 명령 5줄을 여기로 뺀다.
+지원 범위는 안드로이드와 웹이다 (저장소 README 의 대상 범위 참고).
