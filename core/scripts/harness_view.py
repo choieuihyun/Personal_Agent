@@ -219,13 +219,14 @@ PAGE = r"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>하네스 세팅: __PROJECT__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0b0b0b;--panel:#141212;--panel2:#1a1717;--line:#262222;--line2:#332d2d;
   --ink:#f2eeee;--text:#a39a9a;--dim:#6f6767;
   --red:#b8323a;--red-soft:#3a1618;
   --ok:#ddd6d6;--part:#c24a4f;--none:#4b4444;
+  --title:"Do Hyeon","Plus Jakarta Sans","Apple SD Gothic Neo",sans-serif;
 }
 *{box-sizing:border-box}
 html,body{background:var(--bg)}
@@ -235,9 +236,9 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12p
 .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--panel);color:var(--text);border-radius:999px;padding:5px 14px;font-size:13px}
 .rdot{width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;flex:none}
 .red{color:var(--red)}
-h1{color:var(--ink);font-size:clamp(34px,5.4vw,60px);line-height:1.02;font-weight:700;letter-spacing:-.02em;text-transform:uppercase;margin:22px 0 14px}
+h1{font-family:var(--title);color:var(--ink);font-size:clamp(38px,6vw,68px);line-height:1.05;font-weight:400;letter-spacing:-.01em;text-transform:uppercase;margin:22px 0 14px}
 .lead{max-width:680px;font-size:15px}
-h2{font-size:clamp(22px,2.6vw,32px);line-height:1.2;font-weight:500;letter-spacing:-.01em;margin:72px 0 22px;color:var(--ink)}
+h2{font-family:var(--title);font-size:clamp(24px,2.8vw,34px);line-height:1.2;font-weight:400;letter-spacing:-.01em;margin:72px 0 22px;color:var(--ink)}
 h2 .d{color:var(--dim)}
 .head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
 
@@ -257,7 +258,7 @@ h2 .d{color:var(--dim)}
   display:flex;flex-direction:column;will-change:transform;transform-style:preserve-3d;outline:none;transition:border-color .2s}
 .card:hover,.card:focus-visible{border-color:var(--line2)}
 .card:focus-visible{box-shadow:0 0 0 2px var(--red)}
-.card .name{color:var(--ink);font-weight:600;font-size:17px;letter-spacing:-.01em}
+.card .name{font-family:var(--title);color:var(--ink);font-weight:400;font-size:21px;letter-spacing:0}
 .card .grp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-top:2px}
 .card .stat{position:absolute;top:20px;right:18px;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px}
 .card .icon{flex:1;display:flex;align-items:center;justify-content:center;color:var(--ink)}
@@ -273,7 +274,7 @@ h2 .d{color:var(--dim)}
 
 /* 파이프라인 */
 .flow{display:flex;flex-wrap:wrap;align-items:center;gap:0;margin:0 0 18px}
-.flow .cmd{color:var(--ink);font-weight:600;width:100%;margin-bottom:10px;font-size:15px}
+.flow .cmd{font-family:var(--title);color:var(--ink);font-weight:400;width:100%;margin-bottom:10px;font-size:15px}
 .flow .cmd span{color:var(--dim);font-weight:400;margin-left:8px;font-size:13px}
 .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;margin:4px 0}
 .chip:hover{border-color:var(--dim)}
@@ -300,7 +301,7 @@ dialog::backdrop{background:rgba(0,0,0,.72)}
 .dhead{display:flex;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid var(--line);flex:none}
 .dhead .ic{width:64px;height:36px;border-radius:999px;background:var(--red-soft);border:1px solid #5a2226;color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none}
 .dhead .ic svg{width:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.dhead h3{margin:0;color:var(--ink);font-size:20px;font-weight:600}
+.dhead h3{font-family:var(--title);margin:0;color:var(--ink);font-size:24px;font-weight:400}
 .dhead .sub{font-size:13px;color:var(--dim)}
 .dhead button{margin-left:auto;border:1px solid var(--line2);background:transparent;color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit;font-size:13px}
 .dbody{padding:6px 24px 26px;overflow:auto;overscroll-behavior:contain;flex:1}
