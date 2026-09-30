@@ -134,6 +134,14 @@ done
 
 [ "$DRY" = "1" ] && { echo; echo "dry-run 이므로 아무것도 쓰지 않았다."; exit 0; }
 
+# 예전 설치본에서 바이트코드 캐시가 이미 커밋돼 있으면 .gitignore 로는 안 빠진다. 알리기만 한다.
+# 대상의 git 기록을 설치기가 바꾸지 않는다.
+TRACKED=$(cd "$TARGET" && git ls-files .claude 2>/dev/null | grep -c '__pycache__/' || true)
+if [ "${TRACKED:-0}" != "0" ]; then
+  echo "  주의: .claude 아래 __pycache__ 파일 ${TRACKED}개가 git 에 올라가 있다. 스크립트가 돌 때마다 변경으로 뜬다."
+  echo "        빼려면: git rm -r --cached \$(git ls-files .claude | grep __pycache__/)"
+fi
+
 # 설치 기록. 다음 재설치 때 "대상에서 고친 파일" 을 가리는 기준이다.
 python3 "$HARNESS/core/scripts/harness_manifest.py" write "$DEST" $(for p in $PAIRS; do printf '%s ' "${p##*:}"; done)
 

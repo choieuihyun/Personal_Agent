@@ -132,11 +132,11 @@ triage 의 확신이 낮을 때도 사람에게 넘긴다.
 | 스택 | 어댑터 | 상태 |
 |---|---|---|
 | 안드로이드 (gradle + maestro) | `android-gradle-maestro` | 사내 프로젝트에서 사용 (지금 문서 이전 버전) |
-| 웹 (React + Vite + Playwright) | `node-vite-playwright` | 샘플 앱에서 설치 → `/setup` → `/fix` 완주 |
+| 웹 (React + Vite + Playwright) | `node-vite-playwright` | 샘플 앱에서 설치 → `/setup` → `/fix`, `/feature` 완주 |
 | 서버 (Node 내장 http + node:test) | 없음. `/setup` 이 `adapter_inline` 작성 | 샘플 API 에서 설치 → `/setup` → `/fix` 완주 (서버 기동과 내리기 포함) |
 | 파이썬 (pytest) | `python-pytest` | 스키마만 맞춤 |
 
-`/feature` 는 아직 실제로 돌려 보지 않았다.
+`/feature` 는 웹 샘플에서 토론(중계), 명세, 설계, 계획 검증, 승인, 구현, 검증, 명세에서 만든 시나리오 7개로 게이트까지 완주했다.
 
 ## 설치
 

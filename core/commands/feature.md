@@ -56,6 +56,7 @@ echo "[/feature] SESSION_DIR=${SESSION_DIR}"
   "risk_level": "LOW",
   "human_gate_required": false,
   "approval_status": "PENDING",
+  "approved_scope": null,
   "spec_attempt": 0,
   "plan_check_attempt": 0,
   "last_error_hash": null,
@@ -214,10 +215,14 @@ orchestrator.json status 를 "APPROVAL" 로 업데이트한다.
 - 새 공유 신호 여부, sync 설계 여부
 - plan-check 의 PASS_WITH_NOTES 주의사항
 - risk_flags 와 risk_level
+- 수정 후보 중 `risk_globs`, `risk_axes` 에 걸리는 공유 파일 (이 승인이 그 파일 수정까지 포함한다는 것을 분명히 말한다)
 
 AskUserQuestion 으로 승인 여부를 묻는다 (승인 / 수정요청 / 중단).
 
-- 승인 → approval_status "APPROVED", 5단계로
+- 승인 → approval_status "APPROVED", 5단계로.
+  무엇을 보고 승인했는지 orchestrator.json 의 `approved_scope` 에 남긴다:
+  `{"files": allowed_to_create + modify_hint, "risk_flags": [...], "shared_files": [위 공유 파일]}`.
+  5단계는 이 범위를 벗어날 때만 다시 멈춘다
 - 수정요청 → 요청 내용에 따라 해당 단계(DISCUSS/SPEC/PLAN)로 복귀
 - 중단 → status "ABORTED_BY_USER" 로 종료 보고
 
@@ -237,12 +242,15 @@ orchestrator.json status 를 "EXPLORING" 으로 업데이트한다.
 
 ### Orchestrator 판단
 
-1. proposed_allowed_to_modify 에 forbidden_rules(forbidden_globs) 필터 적용. 걸리면 human_gate_required true
-2. `risk_globs` 에 걸리는 공유 파일이 수정 대상에 있으면 shared_event_gate 발동 → Human Gate.
-   신규 이벤트 추가는 허용하되 사람 확인을 받는다 (하드 금지가 아님)
+1. proposed_allowed_to_modify 에 forbidden_rules(forbidden_globs) 필터 적용. 걸리면 human_gate_required true (승인과 무관하게 항상)
+2. `approved_scope` 와 대조한다. 사용자는 4단계에서 이미 위험을 보고 승인했다. 같은 위험으로 두 번 묻지 않는다.
+   아래 중 하나라도 해당하면 Human Gate, 아니면 멈추지 않는다:
+   - 수정 대상에 `approved_scope.files` 밖의 파일이 있다
+   - risk_flags 에 `approved_scope.risk_flags` 에 없던 축이 있다
+   - `risk_globs` 나 `risk_axes` 에 걸리는 공유 파일 중 `approved_scope.shared_files` 에 없던 것이 있다 (shared_event_gate)
+   explorer 가 같은 요인으로 등급만 올린 것(MEDIUM -> HIGH)은 새 위험이 아니다. 멈추지 않고 보고에만 적는다
 3. allowed_to_modify = 필터링된 기존 파일 목록. 최종 수정 범위 = allowed_to_modify + allowed_to_create
-4. risk_level HIGH → Human Gate
-5. status "IMPLEMENTING" 으로
+4. status "IMPLEMENTING" 으로
 
 ---
 
