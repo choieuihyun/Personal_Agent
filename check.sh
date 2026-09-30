@@ -104,6 +104,8 @@ td_case() {  # 인자: 이름 배포명령 재생명령
 chk "내리기: 재생 통과" "0 down" "$(td_case ok true true)"
 chk "내리기: 재생 실패" "1 down" "$(td_case rf true false)"
 chk "내리기: 배포 실패도 exit 2 와 내리기" "2 down" "$(td_case df false true)"
+printf '{"adapter_inline": {"name": "td", "detect": ["package.json"], "build": "true", "deploy": "true", "teardown": "false", "e2e": {"dir_default": "tests", "file_globs": ["*.spec.ts"], "command": "true", "tag_option": "", "report_format": "junit-xml"}}}' > "$T/p_tf.json"
+chk "내리기 실패는 로그에 남고 판정은 그대로" "0 1" "$(out=$(HARNESS_PROJECT_JSON="$T/p_tf.json" bash core/scripts/runtime_gate.sh "$T/s_tf" "$T" 2>&1); echo "$? $(printf '%s' "$out" | grep -c '내리기 실패')")"
 # 읽기 전용 에이전트는 json 을 반환만 한다. 저장기가 깨진 반환과 필수 키 누락을 막아야 한다.
 printf 'x\n```json\n{"step_id": 1, "build_success": true}\n```\n' | python3 core/scripts/save_result.py "$PROBE/b.json" step_id,build_success >/dev/null
 chk "결과 저장: 정상 반환" 0 "$?"
@@ -111,7 +113,7 @@ printf '```json\n{"step_id": 1}\n```\n' | python3 core/scripts/save_result.py "$
 chk "결과 저장: 필수 키 누락은 거부" 1 "$?"
 chk "결과 저장: 거부하면 파일을 안 남긴다" "no" "$([ -e "$PROBE/c.json" ] && echo yes || echo no)"
 # 도구에 쓰기 권한이 없는 에이전트가 결과를 파일로 쓰라는 지시를 받으면 권한과 지시가 모순된다
-chk "쓰기 권한 없는 에이전트의 파일 저장 지시" 0 "$(for a in explorer builder verifier; do grep -lE 'Write 도구로 저장|json. 에 저장|\.json` 에 (성공 )?기록|json` 업데이트' core/agents/$a/AGENT.md; done 2>/dev/null | wc -l | tr -d ' ')"
+chk "쓰기 권한 없는 에이전트의 파일 저장 지시" 0 "$(for f in core/agents/*/AGENT.md; do grep -q '^tools:.*Write' "$f" && continue; grep -lE 'Write 도구로 저장|json. 에 저장|\.json` 에 (성공 )?기록|json` 업데이트|json` 기록|리다이렉트로' "$f"; done 2>/dev/null | wc -l | tr -d ' ')"
 # core 는 어느 스택도 전제하지 않는다. 걷어 낸 스택 전용 표현이 다시 들어오면 잡는다.
 # 예시로 여러 스택을 나란히 드는 것은 괜찮다. 여기 적은 것은 한 스택을 전제로 한 문장에만 나오던 말이다.
 # 선택지로 보여 줄 것은 templates/choices.md 에 둔다.

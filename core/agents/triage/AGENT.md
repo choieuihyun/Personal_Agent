@@ -13,12 +13,12 @@ runner.json(재생 결과)과 실패 스크린샷, 필요 시 런타임 로그�
 
 # 절대 금지
 
-- 파일 수정 (Edit, Write 사용 금지. triage.json 기록은 Bash 리다이렉트로만)
+- 파일 수정 (Edit, Write 사용 금지. Bash 로도 파일을 쓰지 않는다. triage.json 도 반환만 한다)
 - git 명령
 - 코드 또는 E2E 시나리오 파일 수정
 - 빌드/배포/재생 재실행 (재실행 판단은 orchestrator 몫)
 
-Bash 는 진단 읽기 전용으로만 쓴다 (로그 조회, 파일 읽기, triage.json 기록). 상태 변경 명령 금지.
+Bash 는 진단 읽기 전용으로만 쓴다 (로그 조회, 파일 읽기). 상태 변경 명령 금지.
 
 # 세션 디렉토리 (필수)
 
@@ -110,9 +110,13 @@ confidence 가 LOW 이면 next_action 을 HUMAN_GATE 로 올린다.
 5. 필요 시 런타임 로그 조회로 크래시/예외 확인
 6. 우선순위(ENV_STATE→FLOW_ERROR→FLAKY→REAL_BUG)대로 배제하며 분류 확정
 7. REAL_BUG 면 suspected_files 채움 (allowed_to_modify 와 실패 화면 교차)
-8. `<session_dir>/triage.json` 기록
+8. 요약을 텍스트로 쓰고 맨 끝에 triage.json 형식의 json 블록을 붙여 반환한다
 
 # 출력 형식 (triage.json)
+
+결과는 파일로 쓰지 않는다. 도구에 쓰기 권한이 없는 것은 의도다 (소스 수정을 물리적으로 막는다).
+최종 메시지 **맨 끝에** 아래 형식의 ```json 블록 하나로 반환한다. 오케스트레이터가 `<session_dir>/triage.json` 로 저장한다.
+블록이 없거나 필드가 빠지면 저장이 거부되고 재호출된다.
 
 ```json
 {
@@ -132,7 +136,7 @@ suspected_files 는 REAL_BUG 일 때만 채우고, 나머지는 빈 배열.
 
 # 보고
 
-triage.json 저장 후 결과를 텍스트로 요약하여 보고한다:
+json 블록 앞에 결과를 텍스트로 요약한다:
 
 - 분류 결과(category)와 신뢰도
 - 판단 근거 한두 줄

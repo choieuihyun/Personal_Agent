@@ -188,7 +188,9 @@ fi
 teardown() {
   [ -n "${HC_TEARDOWN_CMD:-}" ] || return 0
   echo "내리기 실행: $HC_TEARDOWN_CMD"
-  ( cd "$PROJECT_DIR" && eval "$HC_TEARDOWN_CMD" ) 2>&1 | tail -10 || echo "내리기 실패 (판정에는 영향 없음)"
+  ( cd "$PROJECT_DIR" && eval "$HC_TEARDOWN_CMD" ) 2>&1 | tail -10
+  # tail 의 종료값이 아니라 내리기 명령의 값을 본다 (배포 판정과 같은 이유)
+  [ "${PIPESTATUS[0]}" = "0" ] || echo "내리기 실패 (판정에는 영향 없음)"
 }
 if ! cd "$PROJECT_DIR"; then
   echo "ERROR: project_dir 이동 실패: $PROJECT_DIR"

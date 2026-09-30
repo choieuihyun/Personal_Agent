@@ -83,7 +83,7 @@ forbidden_rules 주의: fix/modernize 와 달리 project.json 의 `risk_globs`(�
 
 ## 에이전트 결과 저장
 
-explorer, builder, verifier 는 결과 파일을 직접 쓰지 않는다. 소스를 못 고치게 도구에서 쓰기 권한을 뺐기 때문이다.
+explorer, builder, verifier, triage 는 결과 파일을 직접 쓰지 않는다. 소스를 못 고치게 도구에서 쓰기 권한을 뺐기 때문이다.
 대신 최종 메시지 끝에 json 블록 하나로 결과를 반환한다. 저장은 오케스트레이터가 한다.
 
 에이전트가 끝나면 최종 메시지 원문을 그대로 넘긴다:
@@ -99,6 +99,7 @@ AGENT_RESULT
 | explorer | `explorer-proposal.json` | `step_id,proposed_allowed_to_modify,risk_flags,risk_level` |
 | builder | `builder.json` | `step_id,build_success,error_hash,error_files,error_confidence` |
 | verifier | `verifier.json` | `step_id,verification_passed,findings,summary` |
+| triage | `triage.json` | `step_id,category,confidence,next_action,suspected_files` |
 
 exit 1 (json 없음, 깨짐, 필수 키 누락) 이면 저장하지 않는다. 같은 에이전트를 한 번 재호출하며
 "결과를 최종 메시지 끝의 json 블록으로 반환하라" 고 다시 요구한다. 두 번째도 실패하면 Human Gate 다.
@@ -382,7 +383,7 @@ bash .claude/scripts/runtime_gate.sh "${SESSION_DIR}" "" "$TAGS"
 
 runtime_attempt_count 를 1 증가시킨다.
 **triage 에이전트를 호출한다** (프롬프트 상단에 session_dir 명시).
-완료 후 triage.json 을 읽고 category 에 따라 분기한다:
+완료 후 반환을 「에이전트 결과 저장」대로 triage.json 에 저장하고 읽어 category 에 따라 분기한다:
 
 | category | next_action | 동작 | 종료 조건 |
 |---|---|---|---|
