@@ -6,6 +6,7 @@
   "device": null,
   "build": "npm run build",
   "deploy": null,
+  "teardown": null,
   "e2e": {
     "dir_default": "e2e",
     "file_globs": [

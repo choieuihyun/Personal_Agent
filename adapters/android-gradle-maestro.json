@@ -10,6 +10,7 @@
   },
   "build": "./gradlew {BUILD_TASK}",
   "deploy": "./gradlew {INSTALL_TASK}",
+  "teardown": null,
   "e2e": {
     "dir_default": "flows",
     "file_globs": [

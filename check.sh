@@ -94,6 +94,16 @@ chk "웹 태그 판독 (import 경로 제외)" "auth,cart" "$(HARNESS_PROJECT_JS
 chk "웹 게이트 종료코드" 0 "$?"
 chk "웹 태그 여러 개는 정규식 | 로" 1 "$(grep -c '^--grep=@(auth|cart)' "$PROBE/npx.args" 2>/dev/null)"
 chk "웹 리포트가 파일로 남는다" "True 1" "$(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print(r.get('report_found'),r.get('flows_total'))" "$PROBE/web/s/runner.json" 2>/dev/null)"
+# 올린 것은 어느 경로로 끝나든 내린다. 서버를 띄운 채 끝나면 다음 게이트가 포트 충돌로 죽는다.
+# 배포 실패는 exit 2 여야 한다. 예전에는 tail 의 종료값을 읽어 설치 실패가 성공으로 기록됐다.
+T="$PROBE/td"; mkdir -p "$T/tests"; printf '{}' > "$T/package.json"; printf "test('a', { tag: '@x' })\n" > "$T/tests/a.spec.ts"
+td_case() {  # 인자: 이름 배포명령 재생명령
+  printf '{"adapter_inline": {"name": "td", "detect": ["package.json"], "build": "true", "deploy": "%s", "teardown": "touch down_%s", "e2e": {"dir_default": "tests", "file_globs": ["*.spec.ts"], "command": "%s", "tag_option": "", "report_format": "junit-xml"}}}' "$2" "$1" "$3" > "$T/p_$1.json"
+  ( export HARNESS_PROJECT_JSON="$T/p_$1.json"; bash core/scripts/runtime_gate.sh "$T/s_$1" "$T" >/dev/null 2>&1 ); echo "$? $([ -e "$T/down_$1" ] && echo down || echo up)"
+}
+chk "내리기: 재생 통과" "0 down" "$(td_case ok true true)"
+chk "내리기: 재생 실패" "1 down" "$(td_case rf true false)"
+chk "내리기: 배포 실패도 exit 2 와 내리기" "2 down" "$(td_case df false true)"
 # 읽기 전용 에이전트는 json 을 반환만 한다. 저장기가 깨진 반환과 필수 키 누락을 막아야 한다.
 printf 'x\n```json\n{"step_id": 1, "build_success": true}\n```\n' | python3 core/scripts/save_result.py "$PROBE/b.json" step_id,build_success >/dev/null
 chk "결과 저장: 정상 반환" 0 "$?"

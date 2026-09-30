@@ -166,12 +166,14 @@ def export_main(argv):
     markers = cfg.get("worktree_markers") or ad.get("detect") or []
     build = expand(ad.get("build") or "", cfg)
     deploy = expand(ad.get("deploy") or "", cfg)
+    teardown = expand(ad.get("teardown") or "", cfg)
     e2e_cmd = expand(e2e_ad.get("command") or "", cfg)
 
     # 남은 빈칸은 실행 전에 알린다. 빈칸을 빈 문자열로 눌러 담으면 반쪽 명령이 돈다.
     # 단 누가 막힐지는 나눠서 알린다. 런타임 게이트는 빌드를 하지 않으므로(빌드는 builder 몫)
     # 빌드 빈칸 때문에 게이트가 멈추면 자기 일과 무관한 이유로 죽는 것이다.
     missing = sorted(set(missing_vars(ad.get("deploy") or "", cfg)
+                         + missing_vars(ad.get("teardown") or "", cfg)
                          + missing_vars(e2e_ad.get("command") or "", cfg)))
     missing_build = sorted(set(missing_vars(ad.get("build") or "", cfg)))
     # 세션마다 셸이 채우는 자리는 빈칸으로 세지 않는다
@@ -191,6 +193,7 @@ def export_main(argv):
     out.append(("HC_TAG_JOIN", e2e_ad.get("tag_join") or ","))
     out.append(("HC_BUILD_CMD", build))
     out.append(("HC_DEPLOY_CMD", deploy))
+    out.append(("HC_TEARDOWN_CMD", teardown))
     out.append(("HC_LOGS_CMD", ((ad.get("logs") or {}).get("command") or "")))
     out.append(("HC_DEVICE_CHECK", dev.get("check") or ""))
     out.append(("HC_DEVICE_FILTER", dev.get("count_filter") or ""))

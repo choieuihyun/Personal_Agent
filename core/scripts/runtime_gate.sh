@@ -180,16 +180,32 @@ else
 fi
 
 # 3. 배포 (컴파일은 builder 가 이미 통과시킨 상태. 여기서는 올리기만)
+# 올린 것은 반드시 내린다. 서버나 컨테이너를 띄우고 그대로 끝내면 다음 게이트가 포트 충돌로 죽고,
+# triage 는 그것을 환경 문제로 분류해 사람을 부른다.
+# 그래서 배포를 시도하기 직전에 EXIT 트랩을 건다. 배포 실패, 재생 실패, 통과 어느 경로로 끝나도 내린다.
+# 반쪽만 뜬 상태도 내려야 하므로 배포 성공 뒤가 아니라 시도 전에 건다.
+# 내리기 실패는 게이트 판정을 바꾸지 않는다. 판정은 재생 결과이고, 내리기 실패는 로그로만 남긴다.
+teardown() {
+  [ -n "${HC_TEARDOWN_CMD:-}" ] || return 0
+  echo "내리기 실행: $HC_TEARDOWN_CMD"
+  ( cd "$PROJECT_DIR" && eval "$HC_TEARDOWN_CMD" ) 2>&1 | tail -10 || echo "내리기 실패 (판정에는 영향 없음)"
+}
 if ! cd "$PROJECT_DIR"; then
   echo "ERROR: project_dir 이동 실패: $PROJECT_DIR"
   write_runner "null" "null" "false" "null" "false" "null" "bad_project_dir"
   exit 3
 fi
 
+trap teardown EXIT
+
 if [ -n "${HC_DEPLOY_CMD:-}" ]; then
   echo "배포 실행: $HC_DEPLOY_CMD"
-  if ! eval "$HC_DEPLOY_CMD" 2>&1 | tail -20; then
-    echo "배포 실패."
+  # 종료값은 tail 이 아니라 배포 명령의 것을 본다. 파이프라인은 마지막 명령의 값을 돌려주므로
+  # if ! eval ... | tail 로 쓰면 배포가 실패해도 tail 의 0 을 받아 설치 성공으로 기록된다.
+  eval "$HC_DEPLOY_CMD" 2>&1 | tail -20
+  DEPLOY_EXIT=${PIPESTATUS[0]}
+  if [ "$DEPLOY_EXIT" != "0" ]; then
+    echo "배포 실패 (exit $DEPLOY_EXIT)."
     write_runner "false" "null" "false" "null" "false" "null" "install_failed"
     exit 2
   fi
