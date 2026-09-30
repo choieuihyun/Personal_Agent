@@ -222,10 +222,10 @@ PAGE = r"""<!doctype html>
 <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0b0b0b;--panel:#141212;--panel2:#1a1717;--line:#262222;--line2:#332d2d;
-  --ink:#f2eeee;--text:#a39a9a;--dim:#6f6767;
-  --red:#b8323a;--red-soft:#3a1618;
-  --ok:#ddd6d6;--part:#c24a4f;--none:#4b4444;
+  --bg:#f6f5f2;--panel:#ffffff;--panel2:#fbfaf8;--line:#e8e5df;--line2:#d9d5ce;
+  --ink:#1d1c1a;--text:#5c5853;--dim:#98938c;
+  --red:#c2453d;--red-soft:#fbeeec;--red-line:#efc9c5;--red-ink:#a3372f;
+  --ok:#2f2d2a;--part:#c2453d;--none:#b9b4ac;
   --title:"Do Hyeon","Plus Jakarta Sans","Apple SD Gothic Neo",sans-serif;
 }
 *{box-sizing:border-box}
@@ -256,13 +256,13 @@ h2 .d{color:var(--dim)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;perspective:1100px}
 .card{position:relative;aspect-ratio:4/5;border-radius:18px;border:1px solid var(--line);background:var(--panel);padding:18px;cursor:pointer;
   display:flex;flex-direction:column;will-change:transform;transform-style:preserve-3d;outline:none;transition:border-color .2s}
-.card:hover,.card:focus-visible{border-color:var(--line2)}
+.card:hover,.card:focus-visible{border-color:var(--line2);box-shadow:0 6px 20px rgba(29,28,26,.06)}
 .card:focus-visible{box-shadow:0 0 0 2px var(--red)}
 .card .name{font-family:var(--title);color:var(--ink);font-weight:400;font-size:21px;letter-spacing:0}
 .card .grp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-top:2px}
 .card .stat{position:absolute;top:20px;right:18px;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px}
 .card .icon{flex:1;display:flex;align-items:center;justify-content:center;color:var(--ink)}
-.card .icon svg{width:40%;height:auto;fill:none;stroke:currentColor;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round;opacity:.92}
+.card .icon svg{width:40%;height:auto;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;opacity:.92}
 .card .rule{width:44px;height:1px;background:var(--line2);margin:0 0 10px}
 .card .io{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--text);margin-bottom:6px;word-break:break-word}
 .card .io .red{padding:0 3px}
@@ -278,7 +278,7 @@ h2 .d{color:var(--dim)}
 .flow .cmd span{color:var(--dim);font-weight:400;margin-left:8px;font-size:13px}
 .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;margin:4px 0}
 .chip:hover{border-color:var(--dim)}
-.chip.step{cursor:default;color:var(--text);background:var(--red-soft);border-color:#5a2226}
+.chip.step{cursor:default;color:var(--text);background:var(--red-soft);border-color:var(--red-line);color:var(--red-ink)}
 .dash{width:26px;height:0;border-top:1px dashed var(--red);opacity:.8;margin:0 4px}
 
 /* 표 */
@@ -297,9 +297,9 @@ td code{color:var(--ink)}
 dialog{border:1px solid var(--line2);border-radius:20px;padding:0;background:var(--panel);color:var(--text);
   width:min(820px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:hidden}
 dialog[open]{display:flex;flex-direction:column}
-dialog::backdrop{background:rgba(0,0,0,.72)}
+dialog::backdrop{background:rgba(29,28,26,.28);backdrop-filter:blur(2px)}
 .dhead{display:flex;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid var(--line);flex:none}
-.dhead .ic{width:64px;height:36px;border-radius:999px;background:var(--red-soft);border:1px solid #5a2226;color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none}
+.dhead .ic{width:64px;height:36px;border-radius:999px;background:var(--red-soft);border:1px solid var(--red-line);color:var(--red-ink);display:flex;align-items:center;justify-content:center;flex:none}
 .dhead .ic svg{width:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .dhead h3{font-family:var(--title);margin:0;color:var(--ink);font-size:24px;font-weight:400}
 .dhead .sub{font-size:13px;color:var(--dim)}
@@ -308,8 +308,8 @@ dialog::backdrop{background:rgba(0,0,0,.72)}
 .dbody h4{margin:22px 0 8px;font-size:11px;color:var(--dim);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
 .dbody p{margin:0;white-space:pre-wrap}
 .tag{display:inline-block;border:1px solid var(--line2);border-radius:999px;padding:2px 10px;margin:2px 6px 2px 0;font-size:12px;color:var(--ink)}
-.tag.mcp{border-color:var(--red);color:#e7b3b6}
-pre{white-space:pre-wrap;margin:0;font-size:12px;background:var(--bg);color:var(--text);padding:12px;border-radius:12px;border:1px solid var(--line)}
+.tag.mcp{border-color:var(--red-line);background:var(--red-soft);color:var(--red-ink)}
+pre{white-space:pre-wrap;margin:0;font-size:12px;background:var(--panel2);color:var(--text);padding:12px;border-radius:12px;border:1px solid var(--line)}
 @media (prefers-reduced-motion:reduce){.card{transition:none}}
 </style></head><body><main>
 <span class="pill"><span class="rdot"></span>Harness View</span>
