@@ -36,7 +36,7 @@
 하네스 원본의 사본이라 여기서 고치면 재설치 때 사라지거나 설치기가 멈춘다.
 스택에 맞는 어댑터가 없으면 새 파일을 만들지 않고 `project.json` 의 `adapter_inline` 에 쓴다.
 있는 어댑터의 일부(로그 명령, 시나리오 폴더 등)만 바꿀 때는 `adapter_override` 에 쓴다. `adapter_inline` 은 어댑터를 통째로 대신하므로 일부만 적으면 나머지 명령이 사라진다.
-외부 도구를 에이전트에 붙일 때도 에이전트 파일을 고치지 않고 `agent_tools` 에 적는다 (6단계).
+MCP 를 에이전트에 붙일 때도 에이전트 파일을 고치지 않고 `agent_tools` 에 적는다 (5단계).
 
 도메인 지식과 에이전트 보충을 섞지 않는다. 용어, 불변식, 함정은 여러 에이전트가 같이 읽는 DOMAIN.md 로 간다.
 보충 칸에는 그 에이전트의 행동 조정(더 볼 곳, 피할 곳, 우선순위)만 쓴다. 같은 지식을 에이전트마다 복사하면 하나만 고쳐지고 나머지가 낡는다.
@@ -59,7 +59,7 @@ ls .claude/project.json .claude/setup .claude/templates/choices.md .claude/templ
 ## 1단계: 소개
 
 사용자에게 짧게 알린다 (5줄 안쪽):
-- 이 하네스가 무엇인지: `/fix`, `/feature`, `/modernize` 를 부르면 역할이 나뉜 에이전트들이 순서대로 탐색, 수정, 빌드, 검증을 한다
+- 이 하네스가 무엇인지: `/fix`, `/feature` 를 부르면 역할이 나뉜 에이전트들이 순서대로 탐색, 수정, 빌드, 검증을 한다
 - 지금 할 일: 에이전트들이 이 프로젝트를 알게 만드는 것. 설정, 도메인 지식, 에이전트별 사정 순서로 묻는다
 - 언제든 "나중에" 라고 하면 건너뛴다. 다시 `/setup` 을 부르면 이어서 한다
 
@@ -100,7 +100,11 @@ ls .claude/project.json .claude/setup .claude/templates/choices.md .claude/templ
    python3 .claude/scripts/domains_for.py <스캔에서 고른 대표 파일 3~5개>
    ```
    대표 파일이 ALL 로 나오면 규칙이 그 경로를 모르는 것이다. 사용자와 규칙을 고친다
-6. **수정 금지 파일** -> `forbidden_globs`. 예: 빌드 설정, 락 파일, 생성 코드, 마이그레이션 기록
+6. **수정 금지 파일** -> `forbidden_globs`. 예: 빌드 설정, 락 파일, 생성 코드, DB 마이그레이션 기록
+7. **크래시 리포팅 (선택)** -> `crash_provider`. 이 세션에 크래시나 에러 추적 서비스의 MCP 가 연결돼 있으면
+   `/fix --crash` 가 거기서 이슈와 스택트레이스를 가져올 수 있다고 알리고, 쓸지 한 번 묻는다.
+   쓰면 이슈 목록 도구와 이벤트 조회 도구 이름, 앱 식별자, 우리 코드로 칠 경로 접두사를 채운다.
+   없거나 안 쓰면 `kind: "none"` 그대로 둔다. `/fix` 의 다른 모드는 영향이 없다
 
 한 묶음이 끝날 때마다 project.json 을 저장하고, json 이 깨지지 않았는지 확인한다:
 ```bash
@@ -109,7 +113,7 @@ python3 -c "import json;json.load(open('.claude/project.json'))" && echo ok
 
 ## 4단계: 도메인 지식
 
-도메인 목록(5단계에서 정한 것)을 보여 주고, 사용자가 고른 도메인부터 DOMAIN.md 를 만든다. 전부 할 필요는 없다.
+도메인 목록(3단계에서 정한 것)을 보여 주고, 사용자가 고른 도메인부터 DOMAIN.md 를 만든다. 전부 할 필요는 없다.
 
 - `docs.domain_map` 이 비어 있으면 먼저 위치를 정한다 (예: `docs/domains`)
 - 뼈대는 `.claude/templates/DOMAIN.md.tmpl`. 절 순서대로 묻는다: 한 줄 요약, 용어, 불변식, 위험 지점, 흔한 함정, 외부 의존
@@ -133,10 +137,8 @@ python3 -c "import json;json.load(open('.claude/project.json'))" && echo ok
 | 7 | spec | /feature |
 | 8 | planner | /feature |
 | 9 | plan-checker | /feature |
-| 10 | verifier | /feature, /modernize |
-| 11 | implementer-modernize | /modernize |
-| 12 | researcher | /modernize |
-| 13 | tutor | /study |
+| 10 | verifier | /feature |
+| 11 | tutor | /study |
 
 시작 전에 사용자에게 고르게 한다: 전부 / 쓸 커맨드에 필요한 것만 / 건너뛰기.
 
@@ -149,7 +151,7 @@ python3 -c "import json;json.load(open('.claude/project.json'))" && echo ok
    - 앞 단계에서 이미 답한 키는 다시 묻지 않는다. "앞에서 X 로 정했다" 고만 알린다
    - 「스캔으로 추측」 이 있으면 추측을 먼저 보여 준다
    - 답은 「저장 위치」 대로 저장한다. `DOMAIN.md` 로 가는 답이면 어느 도메인인지 물어 그 문서에 넣는다.
-     저장 위치가 `tools:` 이면 에이전트 파일을 고치지 않고 6단계 방식(`agent_tools`)으로 적는다
+     저장 위치가 `tools:` 이면 에이전트 파일을 고치지 않고 아래 5번(MCP) 방식으로 적는다
 4. **보충 칸.** 표 밖에서 사용자가 이 에이전트에게 따로 당부할 것이 있는지 한 번 묻는다.
    있으면 `.claude/project/agents/<에이전트>.md` 에 쓴다. 형식:
    ```
@@ -160,20 +162,18 @@ python3 -c "import json;json.load(open('.claude/project.json'))" && echo ok
    ## 우선순위와 당부
    ```
    빈 절은 지운다. 뼈대와 부딪히는 당부(예: "테스트는 건너뛰어도 된다")는 받지 않고 이유를 말한다
-5. 다음 에이전트로 넘어가기 전에 저장한 것을 한 줄로 알린다
+5. **MCP.** 설명서 frontmatter 의 `mcp:` 가 "없음" 이면 묻지 않는다. 아니면 그 줄의 용도를 예로 들며
+   "이 에이전트에 붙일 MCP 가 있나?" 를 한 번 묻는다. 필수가 아니다. 없다고 하면 바로 넘어간다
+   - 후보는 이 세션에 연결된 MCP 서버의 도구에서 고른다. 연결 안 된 서버를 이름만 적지 않는다 (에이전트가 부를 수 없다)
+   - `mcp:` 가 "읽기 도구만" 이면 조회 도구만 붙인다. 쓰기 도구를 붙이면 이 에이전트가 소스를 못 고치게 막은 장치가 무너진다
+   - 고르면 `project.json` 의 `agent_tools` 에 도구 이름을 그대로 적고 반영한다:
+     ```bash
+     python3 .claude/scripts/apply_agent_tools.py
+     ```
+     에이전트 파일의 tools 줄에 더해지고, 재설치해도 다시 반영된다. 서브에이전트는 세션을 새로 열어야 바뀐 도구를 받는다
+6. 다음 에이전트로 넘어가기 전에 저장한 것을 한 줄로 알린다
 
-## 6단계: 외부 도구 연결 (선택)
-
-`.claude/templates/choices.md` 의 「외부 지식 도구」 를 보여 주고, 이 세션에서 쓸 수 있는 도구 중 연결할 것을 고른다.
-
-- 연결은 `project.json` 의 `agent_tools` 에 적는다: `{"researcher": ["<도구 이름>"], "documenter": ["<도구 이름>"]}`
-- 적은 뒤 반영한다. 에이전트 파일의 tools 줄에 더해지고, 재설치해도 다시 반영된다:
-  ```bash
-  python3 .claude/scripts/apply_agent_tools.py
-  ```
-- 노트 앱을 연결했으면 `docs.vault_prefix` 도 묻는다
-
-## 7단계: 확인
+## 6단계: 확인
 
 채운 것이 실제로 먹히는지 돌려 본다. 결과를 표로 보여 준다. 통과가 아닌 것을 통과로 적지 않는다.
 
@@ -202,7 +202,7 @@ rm -rf .claude/state/sessions/_setup
 
 게이트 exit 3 은 설정 오류, 1 은 시나리오 실패(설정은 맞다), 0 은 통과 또는 SKIP 이다. runner.json 의 `skip_reason`, `no_flow` 까지 보고 무엇인지 말한다.
 
-## 8단계: 마무리
+## 7단계: 마무리
 
 1. 프로젝트 루트 `CLAUDE.md` 끝에 `.claude/templates/CLAUDE.md.tmpl` 의 절을 덧붙일지 묻는다. 이미 있으면 건너뛴다
 2. `.claude/project/setup-log.md` 에 기록한다: 날짜, 단계별로 채운 것, 비운 것, 사용자가 거절한 것
@@ -212,7 +212,7 @@ rm -rf .claude/state/sessions/_setup
 |---|---|
 | 채운 것 | 설정 키, 도메인 문서, 보충 칸 |
 | 비운 것 | 키와 **안 채우면 어떻게 되는지** (설명서의 「안 채우면」 열) |
-| 확인 결과 | 7단계 표 |
+| 확인 결과 | 6단계 표 |
 | 다음 | 가장 먼저 해 볼 커맨드 하나 (예: 알려진 작은 버그로 `/fix`) |
 
 `.claude/project/` 와 도메인 문서는 커밋 대상이다. 팀이 같이 쓰는 지식이다. `.claude/state/` 는 커밋하지 않는다.

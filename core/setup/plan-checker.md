@@ -1,6 +1,7 @@
 ---
 agent: plan-checker
 tools: Read, Grep, Glob, Bash, Write
+mcp: 없음. 계획과 명세만 대조한다
 ---
 
 # plan-checker: 공사 시작 전에 설계도를 요구사항표와 한 줄씩 맞대 보는 감리

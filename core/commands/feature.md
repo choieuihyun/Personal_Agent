@@ -1,7 +1,7 @@
 # /feature - 신규 기능 개발 파이프라인
 
 신규 기능을 기획 토론부터 구현/검증/문서화까지 자동으로 진행한다.
-fix/modernize 와 같은 하네스(세션 격리 + orchestrator.json + Human Gate + 런타임 게이트) 위에,
+fix 와 같은 하네스(세션 격리 + orchestrator.json + Human Gate + 런타임 게이트) 위에,
 앞단에 기획 3단계(DISCUSS -> SPEC -> PLAN-CHECK)와 필수 승인 게이트를 더한 파이프라인이다.
 
 순차 실행:
@@ -75,7 +75,7 @@ echo "[/feature] SESSION_DIR=${SESSION_DIR}"
 `${SESSION_DIR}/runner.json`: `{"skipped": null, "no_flow": null, "install_success": null, "replay_success": null, "failed_flow": null, "screenshot_path": null, "gate_error": null}`
 `${SESSION_DIR}/triage.json`: `{"category": null, "confidence": null, "next_action": null, "suspected_files": []}`
 
-forbidden_rules 주의: fix/modernize 와 달리 project.json 의 `risk_globs`(공유 상태 전파 경로 등)를 하드 금지하지 않는다.
+forbidden_rules 주의: fix 와 달리 project.json 의 `risk_globs`(공유 상태 전파 경로 등)를 하드 금지하지 않는다.
 신규 기능은 새 신호(이벤트, 액션, 메시지)를 추가할 수 있기 때문이다. 대신 shared_event_gate 로 다뤄 Human Gate 를 건다 (아래 5단계).
 `forbidden_globs`(의존성/빌드 설정)는 그대로 하드 금지다.
 
@@ -287,11 +287,8 @@ orchestrator.json status 를 "VERIFYING" 으로 업데이트한다.
 
 **verifier 와 builder 를 병렬로 호출한다** (각 프롬프트 상단에 session_dir 명시).
 
-verifier 에게 전달 (신규 기능 모드 명시):
-- 신규 기능이므로 원본 비교(메서드/상수/필드 완전성) 항목은 건너뛴다
-- 완료 기준(DoD) 검증(§5)만 적용한다 (project.json 의 dod_checks + docs.conventions). 새 화면, 모듈, 엔드포인트 모두 대상이다
-- 추가 검증 (UI 가 있을 때): spec.json 의 runtime_observable 수용조건 element 에 해당하는 UI 식별자가 실제 코드에 부여됐는지 (누락 시 MEDIUM). 이게 런타임 게이트의 전제다
-- 이번 파일에 적용되는 완료 기준이 없으면 DoD 는 "해당 없음" 으로 보고한다 (통과로 세지 않는다)
+verifier 에게 전달: 대상 파일(allowed_to_create + allowed_to_modify), spec.json 과 plan.json 이 세션에 있다는 것.
+검증 항목(완료 기준, UI 식별자, 공유 상태 전파, 연결 누락)은 verifier 문서가 정한다.
 
 builder 에게 추가 전달 정보 없음 (session_dir 만으로 충분).
 
@@ -380,7 +377,7 @@ bash .claude/scripts/runtime_gate.sh "${SESSION_DIR}" "" "$TAGS"
 | replay_success=true | 8단계로 (수용조건 동작 검증됨) |
 | replay_success=false | triage 호출 (아래) |
 
-핵심 구분: modernize 는 no_flow 를 실패로 봤지만(보존 검증이 목적), feature 의 no_flow 는
+핵심 구분: feature 의 no_flow 는
 "검증할 관찰 가능 수용조건이 애초에 없음" 일 때만 통과다.
 반드시 spec.json 에 runtime_observable=true 수용조건이 있는지 먼저 확인한다.
 관찰 가능 수용조건이 있는데도 no_flow=true 라면 시나리오 태그가 TAGS 와 어긋나 매칭 0이 된 것이다 (오인 통과).

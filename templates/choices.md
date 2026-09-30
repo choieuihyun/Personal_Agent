@@ -91,20 +91,6 @@ implementer 와 planner 는 "프로젝트에 없는 패턴을 새로 들이지 �
 
 저장 위치: `risk_globs`, 컨벤션 문서
 
-## 레거시 공존 시 상호운용성 (/modernize)
-
-verifier 는 "레거시에서 신규를 부를 수 있는가" 만 묻는다. 구체 항목은 전환 방향마다 다르다.
-
-| 전환 | 확인할 것 |
-|---|---|
-| Java -> Kotlin | 상수의 `const`, 정적 접근이 필요한 곳의 `@JvmStatic`, `@JvmField`, `@JvmOverloads`, null 가능성 표기, 매니페스트 참조 |
-| XML View -> Compose | 기존 화면에 끼워 넣는 호스트(`ComposeView`) 연결, 테마 공유 |
-| JS -> TS | 기존 JS 가 import 하는 모듈의 export 이름 유지, 타입 선언 파일 |
-| 클래스 컴포넌트 -> 훅 | ref 와 생명주기 메서드를 쓰던 부모와의 계약 |
-| Objective-C -> Swift | `@objc` 노출, 브리징 헤더 |
-
-저장 위치: `stack.*`, 컨벤션 문서
-
 ## 빌드 에러 형식
 
 builder 는 에러에서 파일과 줄을 뽑아 신뢰도를 매긴다. 형식이 스택마다 달라서 여기서 고른다.
@@ -118,18 +104,24 @@ builder 는 에러에서 파일과 줄을 뽑아 신뢰도를 매긴다. 형식�
 
 저장 위치: 어댑터의 `error_patterns`. 공유 어댑터를 쓰면 `project.json` 의 `adapter_override.error_patterns`
 
-## 외부 지식 도구
+## 에이전트에 붙일 MCP
 
-researcher 와 tutor 는 기본으로 WebSearch 와 WebFetch 만 쓰고, documenter 는 파일만 쓴다. 아래를 연결하면 그 에이전트의 tools 에 도구 이름이 더해진다.
-연결은 에이전트 파일을 고치지 않고 `project.json` 의 `agent_tools` 에 적는다. `apply_agent_tools.py` 가 반영하고, 재설치해도 다시 반영된다.
+필수가 아니다. `/setup` 이 에이전트 차례마다 "붙일 MCP 가 있나?" 를 한 번 묻는다. 없으면 넘어간다.
+붙이면 에이전트 파일을 고치지 않고 `project.json` 의 `agent_tools` 에 도구 이름을 적는다. `apply_agent_tools.py` 가 반영하고, 재설치해도 다시 반영된다.
 
-| 용도 | 예 |
+읽기 전용 에이전트에는 조회 도구만 붙인다. 쓰기 도구를 붙이면 소스를 못 고치게 막아 둔 장치가 무너진다.
+
+| 에이전트 | 붙일 만한 것 |
 |---|---|
-| 라이브러리 문서 조회 | context7 같은 문서 서버 |
-| 사내 지식베이스 | 위키, 문서 저장소를 여는 MCP 서버 |
-| 노트 앱 동기화 | 노트 앱 파일 시스템이나 REST 를 여는 MCP 서버 |
+| explorer | 코드 심볼 검색 (LSP, 코드 인덱스 서버), 이슈 트래커 조회 |
+| triage | 로그 수집 서버, 에러 추적 서비스, 브라우저 콘솔 조회 |
+| discuss, spec | 이슈 트래커, 기획 문서, 디자인 도구 조회 |
+| planner, tutor | 라이브러리 문서 서버 (공식 문서를 검색 대신 직접 조회) |
+| builder | CI 로그 조회 (원격에서만 빌드되는 프로젝트) |
+| documenter | 노트 앱, 사내 위키 쓰기 (`docs.vault_prefix` 와 함께) |
+| implementer, plan-checker, verifier | 붙이지 않는다 |
 
-저장 위치: 해당 에이전트의 `tools:`, `docs.vault_prefix`
+`/fix --crash` 의 크래시 인테이크도 MCP 를 쓴다. 이것은 에이전트가 아니라 `/fix` 가 직접 부르므로 `crash_provider` 에 적는다.
 
 ## 코드 스타일
 

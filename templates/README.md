@@ -37,14 +37,12 @@ json 에는 주석을 못 쓰므로 설명은 여기 둔다.
 | `domains.prefix_rules` | 파일명 접두사가 도메인을 가리키는 규칙 | 위와 같음 |
 | `dod_checks` | 화면/모듈 완료 기준 중 기계로 확정되는 항목. `{id, applies_to, require\|forbid, message}` 목록. `core/scripts/dod_check.py` 가 돌린다 | 기계 검증을 못 했다고 보고한다 (통과가 아니다) |
 | `forbidden_globs` | 에이전트가 절대 못 고치는 파일 패턴 | 금지 없음 |
-| `stack.*` | 목표 언어/UI 와 레거시 언어/UI 이름. `/modernize` 가 "무엇에서 무엇으로" 를 여기서 읽는다 | 마이그레이션 방향을 몰라 인테이크에서 묻는다 |
 | `risk_axes` | 위험 축별 글롭. `{"SYNC": [...], "EVENT": [...], "THREAD": [...], "DB": [...], "LIST": [...]}`. 걸리면 explorer 가 그 축을 무조건 올린다. 축 이름은 이 다섯 개로 고정이다 | 축 판정이 매번 explorer 재량이 된다 |
 | `risk_globs` | 건드리면 파급이 큰 공유 파일 패턴. explorer 가 위험 신호로 올린다 | 위험 가중 없음 |
 | `ui_test_id` | UI 자동화가 요소를 찾는 식별자 속성 이름 (testTag, testID, data-testid 등) | 셀렉터 규칙 검증을 건너뛴다 |
 | `docs.conventions` | 그 프로젝트의 코딩 컨벤션 문서 | 컨벤션 검증을 건너뛴다 |
 | `docs.e2e_guide` | E2E 시나리오 작성 가이드 문서 (인증 통과 방법 포함) | spec 이 인증 전제를 주석으로만 남기고, 확정 못 한 수용조건은 verify_manual 로 돌린다. 자동 재생되는 시나리오가 줄어든다 |
 | `docs.domain_map` | 도메인 문서 루트 | documenter 가 도메인 문서를 갱신하지 않는다 |
-| `docs.progress` | 진척표 문서 | 진척 갱신을 건너뛴다 |
 | `docs.study_dir` | 학습 노트를 쌓는 디렉토리 | `/study` 가 파일을 남기지 않는다 |
 | `docs.vault_prefix` | 외부 노트 앱으로 동기화할 때 붙는 경로 접두사 | 동기화를 건너뛴다 |
 | `learning.cache_dir` | 공식 샘플 저장소를 얕은 클론으로 받아 둘 로컬 캐시 경로 | tutor 가 샘플 근거 없이 문서만 본다 |

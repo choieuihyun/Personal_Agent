@@ -53,6 +53,17 @@ say() { [ "$DRY" = "1" ] && echo "  (dry-run) $*" || echo "  $*"; }
 # setup 은 /setup 이 읽는 에이전트별 세팅 설명서, templates 는 선택지 목록과 문서 뼈대다.
 PAIRS="core/agents:agents core/commands:commands core/scripts:scripts core/setup:setup adapters:adapters templates:templates"
 
+# 0. 하네스에서 은퇴한 파일. 예전에 설치된 대상에 남아 있으면 지운다.
+# 지우지 않으면 아래 검사가 "하네스에 없는 파일" 로 보고 멈추고, 남은 커맨드는 없는 에이전트를 부른다.
+# 대상에서 고친 흔적이 있어도 지운다. 은퇴한 것은 하네스가 더 이상 책임지지 않는다. 지운 목록은 보여 준다.
+RETIRED="commands/modernize.md commands/log.md scripts/changelog_append.sh agents/implementer-modernize agents/researcher setup/implementer-modernize.md setup/researcher.md"
+for r in $RETIRED; do
+  if [ -e "$DEST/$r" ]; then
+    say "은퇴: $r 제거"
+    [ "$DRY" = "0" ] && rm -rf "${DEST:?}/$r"
+  fi
+done
+
 # 1. 대상에서 고친 파일 찾기 (덮으면 사라지는 것)
 CHANGED=""
 for pair in $PAIRS; do

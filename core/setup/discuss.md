@@ -1,6 +1,7 @@
 ---
 agent: discuss
 tools: Read, Grep, Glob, Bash, AskUserQuestion, Write
+mcp: 읽기 도구만. 이슈 트래커, 기획 문서, 디자인 도구 조회 (요구사항 원문을 가져온다)
 ---
 
 # discuss: 만들기 전에 "이런 경우는요?" 를 먼저 묻는 기획 회의 진행자

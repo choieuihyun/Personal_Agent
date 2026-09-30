@@ -45,8 +45,8 @@ AI 코딩 에이전트를 프로젝트에 붙이는 **방법론 저장소**다. 
 
 ```
 core/           프로젝트 무관. 대상 프로젝트의 .claude/ 로 복사되는 것
-  commands/     오케스트레이터 파이프라인 (fix / feature / modernize / study / deep / log / setup)
-  agents/       역할별 서브에이전트 13개 (explorer / implementer / builder / verifier / triage / ...)
+  commands/     파이프라인 (fix / feature), 세팅 (setup), 학습 (study / deep)
+  agents/       역할별 서브에이전트 11개 (explorer / implementer / builder / verifier / triage / ...)
   setup/        에이전트별 세팅 설명서. /setup 이 이것으로 에이전트를 소개하고 묻는다
   scripts/      결정적 셸 단계 (설정 로더, 런타임 게이트, 도메인 매핑, DoD 검사, 메트릭)
 
@@ -114,7 +114,7 @@ bin/            설치·갱신·진단 CLI (아직 없음)
 | 할 일 API | Node 내장 http + node:test, 의존성 없음 | 없음 -> /setup 이 `adapter_inline` 작성 (서버 기동, 헬스 대기, 내리기, 태그) | 완주 | 완주. 태그로 골라 재생, 서버 내려감 |
 
 그 과정에서 드러난 범용성 결함(표식 없는 inline 어댑터의 exit 3, 안드로이드 전제 템플릿 기본값, __pycache__, 응답 언어)은 고쳤다.
-안 돌려 본 것: `/feature`, `/modernize`, 오늘 문서 기준의 안드로이드.
+안 돌려 본 것: `/feature`, 오늘 문서 기준의 안드로이드.
 
 # 지난 기록 (2026-08-31, 반입과 1~5단계)
 
@@ -318,9 +318,11 @@ NO_FLOW, 워크트리 표식 없음, 설정 없음 세 경로도 각각 exit 0 /
 
 ## 결론 난 것 (다시 논의하지 않는다)
 
-- `/modernize` 와 `/feature` 를 `/fix` 에 합치지 않는다.
-  **인테이크가 다른 건 합치고, 제어 흐름이 다른 건 나눈다.**
-  마이그레이션은 수정 전에 테스트를 뜨고, 신규 기능은 승인에서 멈춘다. 순서 자체가 다르다
+- 파이프라인은 `/fix` 와 `/feature` 둘이다. `/feature` 를 `/fix` 에 합치지 않는다.
+  **인테이크가 다른 건 합치고, 제어 흐름이 다른 건 나눈다.** 신규 기능은 승인에서 멈추고 시나리오를 명세에서 만든다
+- `/modernize` 와 `/log` 는 2026-09-30 에 없앴다. 마이그레이션은 한 번 하고 끝나는 전용 작업이라 범용 파이프라인이 아니다.
+  딸린 implementer-modernize, researcher, `stack.*`, `docs.progress` 도 같이 없앴다. 설치기가 예전 설치본에서 지운다
+- MCP 는 필수가 아니다. `/setup` 이 에이전트 차례마다 붙일 것이 있는지 묻고, 읽기 전용 에이전트에는 조회 도구만 붙인다
 - 에이전트 본문(뼈대)은 비워 두지 않는다. 프로젝트마다 대화로 새로 쓰면 에이전트 사이 계약이 깨지고 역수출이 끊긴다.
   살은 보충 칸, DOMAIN.md, project.json 으로 받는다. 도메인 지식은 에이전트 칸이 아니라 DOMAIN.md 로 (여러 에이전트가 같이 읽는다)
 - 도구는 사용자 선택, 결과 형식(JUnit XML)은 내부 계약이다. 형식까지 풀면 해석기가 도구 수만큼 필요하다

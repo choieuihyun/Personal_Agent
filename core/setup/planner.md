@@ -1,6 +1,7 @@
 ---
 agent: planner
 tools: Read, Grep, Glob, Bash, Write
+mcp: 읽기 도구만. 라이브러리 문서 서버(최신 API 확인), 디자인 도구 조회
 ---
 
 # planner: 합격 기준을 받아 새 방을 어디에 지을지 도면만 그리는 설계사

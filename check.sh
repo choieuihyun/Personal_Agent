@@ -44,7 +44,7 @@ if [ -n "$DENY" ]; then
 else
   skip "에이전트 이름 검사" ".denylist 없음"
 fi
-chk "에이전트 개수" 13 "$(ls core/agents | wc -l | tr -d ' ')"
+chk "에이전트 개수" 11 "$(ls core/agents | wc -l | tr -d ' ')"
 chk "frontmatter name 불일치" 0 "$(for d in core/agents/*/; do n=$(basename $d); m=$(grep -m1 '^name:' $d/AGENT.md | sed 's/name: *//'); [ "$n" = "$m" ] || echo x; done | wc -l | tr -d ' ')"
 echo "[4] 폐기된 키 이름 재발 (생산자와 소비자가 갈리면 집계와 분기가 조용히 깨진다)"
 # 제품 용어가 든 구 키(공유 이벤트 관련)는 여기 적지 않는다. [1] 의 금지어 검사가 이미 잡는다.
@@ -142,17 +142,25 @@ chk "설명서와 실제 tools 불일치" 0 "$(for f in core/setup/*.md; do n=$(
 I="$PROBE/inst"; mkdir -p "$I"; printf '{}' > "$I/package.json"
 bash install.sh "$I" >/dev/null 2>&1
 chk "설치: 실행 상태와 바이트코드 캐시를 git 에서 뺀다" 2 "$(grep -cxE '\.claude/state/|\.claude/\*\*/__pycache__/' "$I/.gitignore")"
-chk "설치: 설명서와 템플릿 복사" "13 ok" "$(ls "$I/.claude/setup" 2>/dev/null | wc -l | tr -d ' ') $([ -f "$I/.claude/templates/choices.md" ] && [ -f "$I/.claude/templates/DOMAIN.md.tmpl" ] && echo ok)"
+chk "설치: 설명서와 템플릿 복사" "$(ls -d core/agents/*/ | wc -l | tr -d ' ') ok" "$(ls "$I/.claude/setup" 2>/dev/null | wc -l | tr -d ' ') $([ -f "$I/.claude/templates/choices.md" ] && [ -f "$I/.claude/templates/DOMAIN.md.tmpl" ] && echo ok)"
 python3 - "$I/.claude/project.json" <<'PYX'
 import json,sys
-p=sys.argv[1]; c=json.load(open(p)); c["agent_tools"]={"researcher":["mcp__docs__query"]}; json.dump(c,open(p,"w"))
+p=sys.argv[1]; c=json.load(open(p)); c["agent_tools"]={"explorer":["mcp__docs__query"]}; json.dump(c,open(p,"w"))
 PYX
 (cd "$I" && python3 .claude/scripts/apply_agent_tools.py >/dev/null 2>&1)
 (cd "$I" && python3 .claude/scripts/apply_agent_tools.py >/dev/null 2>&1)
-chk "외부 도구 반영 (두 번 돌려도 한 번)" 1 "$(grep '^tools:' "$I/.claude/agents/researcher/AGENT.md" | grep -o 'mcp__docs__query' | wc -l | tr -d ' ')"
+chk "외부 도구 반영 (두 번 돌려도 한 번)" 1 "$(grep '^tools:' "$I/.claude/agents/explorer/AGENT.md" | grep -o 'mcp__docs__query' | wc -l | tr -d ' ')"
 bash install.sh "$I" >/dev/null 2>&1
 chk "재설치: 도구 연결 때문에 멈추지 않음" 0 "$?"
-chk "재설치: 도구 연결 유지" 1 "$(grep -c '^tools:.*mcp__docs__query' "$I/.claude/agents/researcher/AGENT.md")"
+chk "재설치: 도구 연결 유지" 1 "$(grep -c '^tools:.*mcp__docs__query' "$I/.claude/agents/explorer/AGENT.md")"
+# 예전 버전이 설치된 대상: 은퇴한 파일이 남아 있어도 재설치가 멈추지 않고 그 파일을 지운다
+mkdir -p "$I/.claude/agents/researcher"; echo old > "$I/.claude/commands/modernize.md"; echo old > "$I/.claude/agents/researcher/AGENT.md"
+bash install.sh "$I" >/dev/null 2>&1
+chk "재설치: 은퇴한 파일 정리" "0 gone" "$? $([ -e "$I/.claude/commands/modernize.md" ] || [ -e "$I/.claude/agents/researcher" ] && echo left || echo gone)"
+# 에이전트마다 붙일 MCP 안내가 있어야 /setup 이 에이전트 차례에 물을 수 있다
+chk "MCP 안내 없는 설명서" 0 "$(grep -L '^mcp:' core/setup/*.md | wc -l | tr -d ' ')"
+# 은퇴한 커맨드를 부르거나 가리키는 곳이 남으면 없는 에이전트를 부른다
+chk "은퇴한 커맨드와 에이전트 언급" 0 "$(grep -rEo 'modernize|researcher|changelog_append|/log\b' core templates README.md 2>/dev/null | wc -l | tr -d ' ')"
 # core 는 어느 스택도 전제하지 않는다. 걷어 낸 스택 전용 표현이 다시 들어오면 잡는다.
 # 예시로 여러 스택을 나란히 드는 것은 괜찮다. 여기 적은 것은 한 스택을 전제로 한 문장에만 나오던 말이다.
 # 선택지로 보여 줄 것은 templates/choices.md 에 둔다.

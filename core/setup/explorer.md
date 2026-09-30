@@ -1,6 +1,7 @@
 ---
 agent: explorer
 tools: Read, Grep, Glob, Bash
+mcp: 읽기 도구만. 코드 심볼 검색(LSP, 코드 인덱스 서버), 이슈 트래커 조회(버그 설명과 재현 조건 가져오기)
 ---
 
 # explorer: 공사 전에 어디를 고쳐야 하는지 지도를 그려 오는 정찰병
@@ -17,7 +18,6 @@ tools: Read, Grep, Glob, Bash
 |---|---|
 | `/fix` | 1단계 탐색 (EXPLORING). 빌드 에러 위치를 모르거나(LOW) 허가 목록 밖에서 나면 다시 불린다 |
 | `/feature` | 5단계 탐색. 승인된 계획을 배선할 기존 파일만 확정한다 (새 파일은 planner 몫) |
-| `/modernize` | 1단계 탐색 + 리서치. researcher 와 병렬로 돌고, 기준 구조가 요구하는 파일까지 넣는다 |
 
 ## 못 하는 것
 

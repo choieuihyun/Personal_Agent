@@ -65,7 +65,6 @@ eval "$(python3 "$REPO/.claude/scripts/harness_config.py" --export "$REPO")"
 **REAL_BUG (실제 동작 버그)**
 - 배포 성공 + 대상은 응답했으나 기대 내용/상태가 없거나 틀림
 - 셀렉터나 요청은 정상인데 결과가 어긋남 (예: 버튼을 눌렀는데 목록이 빔, 추가 요청 뒤 조회 응답에 항목이 없음)
-- /modernize 중이면: 마이그레이션 대상에서 발생 (동작 보존 실패)
 - 재현성 있음
 
 **FLAKY (간헐 실패)**

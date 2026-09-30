@@ -1,6 +1,7 @@
 ---
 agent: implementer
 tools: Read, Edit, Write
+mcp: 없음. 코드를 쓰는 도구를 더하면 허가 목록 밖 수정을 막는 장치가 약해진다
 ---
 
 # implementer: 허가받은 구역 안에서만 공사하는 시공 담당
@@ -18,7 +19,6 @@ tools: Read, Edit, Write
 | `/fix` | 2단계 수정 (IMPLEMENTING). 빌드 실패나 게이트 재생 실패(triage 가 REAL_BUG 로 판정) 뒤 다시 불린다. 시도 상한에 닿으면 멈춘다 |
 | `/feature` | 6단계 구현. 검증 또는 빌드가 실패하면 다시 불린다. 신규 sync 흐름은 feature-mode 지시로 허용된다 |
 
-`/modernize` 에서는 불리지 않는다. 그쪽은 implementer-modernize 가 맡는다.
 
 ## 못 하는 것
 

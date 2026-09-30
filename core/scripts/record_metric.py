@@ -12,7 +12,7 @@
 # 호출 시점이 둘이다 (WHY 멱등이어야 하는지):
 #   1) runtime_gate.sh 의 write_runner 안 - 게이트가 끝나는 모든 경로에서 자동 호출된다. 확실히 돈다.
 #      다만 이 시점에는 triage 가 아직 안 돌아 triage_category 가 비어 있다.
-#   2) 커맨드 문서(/fix, /modernize, /feature)의 마지막 단계 - triage 결과까지 채워 다시 호출한다.
+#   2) 커맨드 문서(/fix, /feature)의 마지막 단계 - triage 결과까지 채워 다시 호출한다.
 #      이쪽은 LLM 이 그 단계까지 도달해야 돌므로 누락될 수 있다.
 # 두 번 불려도 줄이 두 개가 되면 안 되고, 1) 만 돌아도 기록은 남아야 한다.
 # 그래서 (session_id, step_id, runtime_attempt_count) 를 키로 잡고, 같은 키가 이미 있으면

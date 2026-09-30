@@ -1,6 +1,7 @@
 ---
 agent: tutor
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch
+mcp: 읽기 도구만. 라이브러리 문서 서버(공식 문서를 검색 대신 직접 조회)
 ---
 
 # tutor: 교과서와 우리 집 실제 배선을 나란히 펴 놓고 차이를 짚어 주는 과외 선생

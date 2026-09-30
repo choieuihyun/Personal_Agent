@@ -1,6 +1,7 @@
 ---
 agent: spec
 tools: Read, Grep, Glob, Bash, Write
+mcp: 읽기 도구만. 디자인 도구(화면 문구와 요소 이름), 기획 문서 조회
 ---
 
 # spec: 만들기 전에 합격 기준을 먼저 적어 봉인하는 시험 출제자

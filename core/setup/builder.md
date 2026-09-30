@@ -1,6 +1,7 @@
 ---
 agent: builder
 tools: Bash, Read
+mcp: 읽기 도구만. 원격에서만 빌드되는 프로젝트라면 CI 로그 조회
 ---
 
 # builder: 공사가 끝날 때마다 도면대로 지어졌는지 기계에 넣어 보는 검수 기사
@@ -18,7 +19,6 @@ tools: Bash, Read
 | `/fix` | 0단계 인테이크 모드 B (`--build`). 고칠 에러를 먼저 확보한다. 성공하면 대상 없음으로 끝난다 |
 | `/fix` | 3단계 빌드 (BUILDING). 수정할 때마다 |
 | `/feature` | 7단계 검증 + 빌드. verifier 와 병렬 |
-| `/modernize` | 3단계 검증 + 빌드. verifier 와 병렬 |
 
 ## 못 하는 것
 
