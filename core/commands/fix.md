@@ -45,6 +45,16 @@ echo "[/fix] SESSION_DIR=${SESSION_DIR}"
 
 ## 시작 전 준비
 
+### 하네스 업데이트 확인 (알리기만 한다)
+
+```bash
+python3 .claude/scripts/harness_version.py
+```
+
+출력이 있으면 사용자에게 첫머리에 그 줄을 그대로 한 번 알리고 **계속 진행한다.** 업데이트 때문에 멈추거나 대신 재설치하지 않는다.
+재설치는 사용자가 정한다. 출력이 없으면 아무 말도 하지 않는다.
+
+
 `${SESSION_DIR}/orchestrator.json` 을 아래 초기값으로 생성한다.
 
 ```json

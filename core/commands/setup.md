@@ -51,6 +51,9 @@ ls .claude/project.json .claude/setup .claude/templates/choices.md .claude/templ
 
 하나라도 없으면 설치가 안 된 것이다. "하네스 저장소의 install.sh 로 먼저 설치한다" 고 안내하고 멈춘다.
 
+그다음 `python3 .claude/scripts/harness_version.py --now` 를 돌린다. 출력이 있으면 사용자에게 알리고,
+재설치하고 세팅할지 지금 버전으로 세팅할지 고르게 한다. 새 버전에서 설정 키나 질문이 바뀌었을 수 있다.
+
 `.claude/project/setup-log.md` 가 있으면 다시 돌리는 것이다. 지난 기록을 읽고 사용자에게 고른다:
 - 비운 것만 채우기
 - 특정 에이전트나 도메인만 다시 하기

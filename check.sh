@@ -167,6 +167,21 @@ echo "local edit" >> "$I/.claude/commands/feature.md"
 out=$(bash install.sh "$I" 2>&1); code=$?
 chk "업그레이드: 대상에서 고친 파일에서는 멈춤" "1 1" "$code $(printf '%s' "$out" | grep -c 'commands/feature.md')"
 bash install.sh "$I" --force >/dev/null 2>&1
+# 버전: 설치 기록에 커밋이 남고, 뒤처지면 알리고, 재설치 때 무엇에서 무엇으로 가는지 보여 준다.
+HEADC=$(git rev-parse HEAD)
+chk "설치 기록에 하네스 커밋" "$HEADC" "$(python3 core/scripts/harness_manifest.py meta "$I/.claude" harness_commit)"
+OLDC=$(git rev-parse HEAD~3)
+sed -i.bak "s/^# harness_commit .*/# harness_commit $OLDC/" "$I/.claude/.harness-manifest"
+mkdir -p "$I/.claude/state"; printf '{"remote_checked_at": %s}' "$(date +%s)" > "$I/.claude/state/version-check.json"
+chk "뒤처진 설치본은 업데이트를 알린다" 1 "$(python3 core/scripts/harness_version.py "$I" | grep -c '업데이트 3건')"
+python3 - "$I/.claude/project.json" <<'PYX'
+import json,sys
+p=sys.argv[1]; c=json.load(open(p)); c.pop("risk_axes",None); json.dump(c,open(p,"w"))
+PYX
+out=$(bash install.sh "$I" 2>&1)
+chk "재설치: 버전 변화와 변경 건수" 1 "$(printf '%s' "$out" | grep -c "하네스 ${OLDC:0:7} -> ${HEADC:0:7} (그 사이 3건)")"
+chk "재설치: 새 설정 키 안내" 1 "$(printf '%s' "$out" | grep -c '새 설정 키.*risk_axes')"
+chk "최신 설치본은 알리지 않는다" "" "$(python3 core/scripts/harness_version.py "$I")"
 # 에이전트마다 붙일 MCP 안내가 있어야 /setup 이 에이전트 차례에 물을 수 있다
 chk "MCP 안내 없는 설명서" 0 "$(grep -L '^mcp:' core/setup/*.md | wc -l | tr -d ' ')"
 # 은퇴한 커맨드를 부르거나 가리키는 곳이 남으면 없는 에이전트를 부른다

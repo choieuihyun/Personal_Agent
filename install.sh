@@ -95,6 +95,23 @@ for r in $RETIRED; do
   fi
 done
 
+# 버전: 어느 하네스 커밋에서 어느 커밋으로 올라가는지, 그 사이 무엇이 바뀌었는지 보여 준다.
+NEW_COMMIT=$(git -C "$HARNESS" rev-parse HEAD 2>/dev/null || true)
+OLD_COMMIT=$(python3 "$HARNESS/core/scripts/harness_manifest.py" meta "$DEST" harness_commit 2>/dev/null || true)
+DIRTY=$(git -C "$HARNESS" status --porcelain -- core adapters templates 2>/dev/null | head -1)
+if [ -n "$NEW_COMMIT" ]; then
+  if [ -n "$OLD_COMMIT" ] && [ "$OLD_COMMIT" != "$NEW_COMMIT" ]; then
+    N=$(git -C "$HARNESS" rev-list --count "$OLD_COMMIT..$NEW_COMMIT" 2>/dev/null || echo "?")
+    echo "하네스 ${OLD_COMMIT:0:7} -> ${NEW_COMMIT:0:7} (그 사이 ${N}건)"
+    git -C "$HARNESS" log --oneline "$OLD_COMMIT..$NEW_COMMIT" 2>/dev/null | head -15 | sed 's/^/  /'
+  elif [ -z "$OLD_COMMIT" ]; then
+    echo "하네스 ${NEW_COMMIT:0:7} 설치"
+  else
+    echo "하네스 ${NEW_COMMIT:0:7} (이미 이 버전)"
+  fi
+  [ -n "$DIRTY" ] && echo "  주의: 하네스 저장소에 커밋 안 된 변경이 있다. 설치 기록의 커밋과 실제 내용이 다를 수 있다"
+fi
+
 # 2. 복사
 echo "설치: $HARNESS -> $DEST"
 for pair in $PAIRS; do
@@ -143,7 +160,9 @@ if [ "${TRACKED:-0}" != "0" ]; then
 fi
 
 # 설치 기록. 다음 재설치 때 "대상에서 고친 파일" 을 가리는 기준이다.
-python3 "$HARNESS/core/scripts/harness_manifest.py" write "$DEST" $(for p in $PAIRS; do printf '%s ' "${p##*:}"; done)
+HM_HARNESS_COMMIT="$NEW_COMMIT" HM_HARNESS_PATH="$HARNESS" HM_HARNESS_REMOTE="$(git -C "$HARNESS" remote get-url origin 2>/dev/null || true)" \
+  HM_INSTALLED_AT="$(date +%Y-%m-%dT%H:%M:%S)" \
+  python3 "$HARNESS/core/scripts/harness_manifest.py" write "$DEST" $(for p in $PAIRS; do printf '%s ' "${p##*:}"; done)
 
 # 세팅 때 붙인 외부 도구를 다시 반영한다. 복사가 tools 줄을 원본으로 되돌렸기 때문이다.
 (cd "$TARGET" && python3 .claude/scripts/apply_agent_tools.py >/dev/null 2>&1) || echo "  주의: agent_tools 반영 실패 (python3 .claude/scripts/apply_agent_tools.py 로 확인)"
@@ -163,6 +182,19 @@ case "$HC_OK" in
 esac
 DOM=$(cd "$TARGET" && python3 .claude/scripts/domains_for.py --self-check 2>/dev/null | head -1)
 echo "  도메인 규칙    ${DOM:-확인 불가}"
+# 하네스에 새로 생긴 설정 키. project.json 은 덮지 않으므로 새 키는 저절로 들어가지 않는다.
+NEWKEYS=$(python3 - "$HARNESS/templates/project.json.tmpl" "$DEST/project.json" <<'PYK' 2>/dev/null
+import json, sys
+t, p = (json.load(open(f)) for f in sys.argv[1:3])
+miss = [k for k in t if k not in p]
+miss += ["%s.%s" % (k, s) for k in t if isinstance(t[k], dict) and isinstance(p.get(k), dict) for s in t[k] if s not in p[k]]
+print(" ".join(miss))
+PYK
+)
+if [ -n "$NEWKEYS" ]; then
+  echo "  새 설정 키     $NEWKEYS"
+  echo "                 이 프로젝트 project.json 에 아직 없다. /setup 을 다시 돌려 '비운 것만 채우기' 를 고른다"
+fi
 
 echo
 if [ "$HC_OK" = "1" ] || [ "$HC_OK" = "2" ]; then

@@ -9,8 +9,13 @@
 #
 # 에이전트의 tools 줄은 비교에서 뺀다. /setup 이 붙인 MCP(agent_tools)가 반영되는 자리다.
 #
+# 기록 첫머리에는 어느 하네스에서 설치했는지를 남긴다 (# 로 시작하는 줄):
+#   # harness_commit <커밋>   # harness_path <하네스 클론 경로>   # harness_remote <원격 주소>   # installed_at <시각>
+# harness_version.py 가 이것으로 업데이트가 있는지 알린다.
+#
 # 사용법:
 #   harness_manifest.py write   <.claude 경로> <하위 폴더...>      설치 직후 기록
+#   harness_manifest.py meta    <.claude 경로> <키>                기록 첫머리 값 하나 출력 (없으면 빈 줄)
 #   harness_manifest.py changed <.claude 경로> <하네스 루트> <원본:하위 ...>
 #       대상에서 고친 파일을 한 줄에 하나 출력한다. 기록이 없으면 첫 줄에 "#NO_MANIFEST" 를 내고
 #       원본과 비교한다 (하네스가 갱신한 파일도 섞여 나온다).
@@ -39,8 +44,20 @@ def walk(root):
             yield os.path.join(d, f)
 
 
+def meta(dest):
+    out = {}
+    mpath = os.path.join(dest, NAME)
+    if os.path.isfile(mpath):
+        for line in open(mpath, encoding="utf-8"):
+            if line.startswith("# "):
+                k, _, v = line[2:].rstrip("\n").partition(" ")
+                out[k] = v
+    return out
+
+
 def write(dest, subs):
-    lines = []
+    lines = ["# %s %s" % (k, os.environ.get("HM_" + k.upper(), "")) for k in
+             ("harness_commit", "harness_path", "harness_remote", "installed_at")]
     for sub in subs:
         base = os.path.join(dest, sub)
         if not os.path.isdir(base):
@@ -56,6 +73,8 @@ def changed(dest, harness, pairs):
     mpath = os.path.join(dest, NAME)
     if os.path.isfile(mpath):
         for line in open(mpath, encoding="utf-8"):
+            if line.startswith("#"):
+                continue
             h, _, rel = line.rstrip("\n").partition("  ")
             if rel:
                 manifest[rel] = h
@@ -85,6 +104,9 @@ def main():
     a = sys.argv[1:]
     if len(a) >= 2 and a[0] == "write":
         write(a[1], a[2:])
+        return 0
+    if len(a) == 3 and a[0] == "meta":
+        print(meta(a[1]).get(a[2], ""))
         return 0
     if len(a) >= 3 and a[0] == "changed":
         changed(a[1], a[2], a[3:])
