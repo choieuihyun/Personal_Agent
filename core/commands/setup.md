@@ -209,7 +209,12 @@ rm -rf .claude/state/sessions/_setup
 
 1. 프로젝트 루트 `CLAUDE.md` 끝에 `.claude/templates/CLAUDE.md.tmpl` 의 절을 덧붙일지 묻는다. 이미 있으면 건너뛴다
 2. `.claude/project/setup-log.md` 에 기록한다: 날짜, 단계별로 채운 것, 비운 것, 사용자가 거절한 것
-3. 사용자에게 요약한다:
+3. 세팅 화면을 만든다. 사용자가 방금 채운 것을 한눈에 확인하게 한다:
+   ```bash
+   python3 .claude/scripts/harness_view.py --open
+   ```
+   나중에 다시 보려면 `/harness-view` 를 부르면 된다고 알린다
+4. 사용자에게 요약한다:
 
 | 구분 | 내용 |
 |---|---|

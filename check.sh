@@ -182,6 +182,16 @@ out=$(bash install.sh "$I" 2>&1)
 chk "재설치: 버전 변화와 변경 건수" 1 "$(printf '%s' "$out" | grep -c "하네스 ${OLDC:0:7} -> ${HEADC:0:7} (그 사이 3건)")"
 chk "재설치: 새 설정 키 안내" 1 "$(printf '%s' "$out" | grep -c '새 설정 키.*risk_axes')"
 chk "최신 설치본은 알리지 않는다" "" "$(python3 core/scripts/harness_version.py "$I")"
+# 세팅 화면: 설치된 프로젝트에서 만들어지고 모든 에이전트가 들어가야 한다.
+# 페이지 스크립트가 깨지면 빈 화면이 된다 (브라우저 전역 이름과 겹친 함수명으로 실제로 한 번 깨졌다).
+(cd "$I" && python3 .claude/scripts/harness_view.py >/dev/null 2>&1)
+V="$I/.claude/state/harness-view.html"
+chk "세팅 화면: 모든 에이전트 포함" "$(ls -d core/agents/*/ | wc -l | tr -d ' ')" "$(python3 -c "import re,json,sys;s=open(sys.argv[1],encoding='utf-8').read();d=json.loads(re.search(r'const D = (.*?);\n',s,re.S).group(1).replace('<\\/','</'));print(len(d['agents']))" "$V" 2>/dev/null)"
+if command -v node >/dev/null 2>&1; then
+  python3 -c "import re,sys;s=open(sys.argv[1],encoding='utf-8').read();open(sys.argv[2],'w').write(re.search(r'<script>(.*)</script>',s,re.S).group(1))" "$V" "$PROBE/view.js"
+  chk "세팅 화면: 페이지 스크립트 문법" 0 "$(node --check "$PROBE/view.js" >/dev/null 2>&1; echo $?)"
+  chk "세팅 화면: 브라우저 전역과 겹치는 함수명" 0 "$(grep -cE '^function (top|parent|self|name|status|close|open|print|find|stop)\(' "$PROBE/view.js")"
+fi
 # 에이전트마다 붙일 MCP 안내가 있어야 /setup 이 에이전트 차례에 물을 수 있다
 chk "MCP 안내 없는 설명서" 0 "$(grep -L '^mcp:' core/setup/*.md | wc -l | tr -d ' ')"
 # 은퇴한 커맨드를 부르거나 가리키는 곳이 남으면 없는 에이전트를 부른다
