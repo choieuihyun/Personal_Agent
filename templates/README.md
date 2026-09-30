@@ -27,12 +27,12 @@ json 에는 주석을 못 쓰므로 설명은 여기 둔다.
 | `adapter_inline` | 어댑터 파일 대신 project.json 안에 직접 적는 어댑터 객체. 있으면 `adapter` 보다 먼저 쓴다. 어댑터 파일을 따로 만들 만큼 공유할 일이 없는 프로젝트에 쓴다. 시나리오가 아직 없는 프로젝트는 `runtime_gate: false` 와 함께 `{"name": ..., "build": "<빌드 또는 테스트 명령>"}` 만 적어도 된다 | `adapter` 를 쓴다 |
 | `adapter_override` | 어댑터 파일 위에 일부만 덮어쓸 값. 예: `{"logs": {"command": "docker compose logs --tail=200"}}`, `{"e2e": {"dir_default": "tests/e2e"}}`. 객체는 키 단위로 합친다 | 어댑터 파일 그대로 |
 | `runtime_gate` | 런타임 게이트를 쓸지. E2E 개념이 없는 프로젝트는 `false` | `true` 로 보고 어댑터를 요구한다 |
-| `vars` | 어댑터 명령의 빈칸을 채우는 값. `{BUILD_TASK}` 같은 자리 | 빈칸이 남으면 게이트가 실행 전에 멈춘다 |
+| `vars` | 어댑터 명령의 빈칸을 채우는 값. 어댑터가 요구하는 것만 넣는다 (예: 안드로이드 어댑터의 `{BUILD_TASK}`, `{INSTALL_TASK}`). 템플릿은 비어 있고, 무엇이 필요한지는 로더가 빈칸 목록으로 알려 준다 | 빈칸이 남으면 게이트가 실행 전에 멈춘다 |
 | `env` | 게이트 실행 전에 export 할 환경변수 | 생략 |
 | `env_candidates` | 기기마다 경로가 다른 환경변수의 후보 목록. 존재하는 첫 경로를 쓴다 | 생략 |
 | `worktree_markers` | 이 파일이 있어야 올바른 워크트리로 인정한다. 비면 어댑터의 `detect` 를 쓴다 | 어댑터 값 |
 | `e2e.dir` | E2E 시나리오 디렉토리 (저장소 상대경로) | 어댑터 기본값 |
-| `e2e.tag_key` | 시나리오 파일에서 태그를 읽을 키 이름. 어댑터의 `tag_scan.key` 를 덮어쓴다 | 어댑터 기본값을 쓴다 |
+| `e2e.tag_key` | 태그를 yaml 목록으로 적는 스택(maestro 등)에서 그 키 이름. 어댑터의 `tag_scan.key` 를 덮어쓴다. 정규식으로 태그를 읽는 스택(playwright 등)에서는 쓰이지 않는다 | 어댑터 기본값을 쓴다 |
 | `domains.dir_rules` | 폴더 이름이 곧 도메인인 규칙 | 모든 변경이 ALL(전체 회귀) |
 | `domains.prefix_rules` | 파일명 접두사가 도메인을 가리키는 규칙 | 위와 같음 |
 | `dod_checks` | 화면/모듈 완료 기준 중 기계로 확정되는 항목. `{id, applies_to, require\|forbid, message}` 목록. `core/scripts/dod_check.py` 가 돌린다 | 기계 검증을 못 했다고 보고한다 (통과가 아니다) |

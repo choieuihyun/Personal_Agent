@@ -127,6 +127,13 @@ chk "보충 칸을 읽지 않는 에이전트" 0 "$(grep -L '^# 프로젝트 보
 O="$PROBE/ov/.claude"; mkdir -p "$O"; cp -r adapters "$O/"
 printf '{"adapter": "node-vite-playwright", "adapter_override": {"logs": {"command": "echo L"}, "e2e": {"dir_default": "t"}}}' > "$O/project.json"
 chk "어댑터 일부 덮기 (나머지 유지)" "npm run build|echo L|t" "$(eval "$(HARNESS_PROJECT_JSON="$O/project.json" python3 core/scripts/harness_config.py --export)"; echo "${HC_BUILD_CMD}|${HC_LOGS_CMD}|${HC_E2E_DIR}")"
+# 처음 보는 스택: 어댑터 파일 없이 adapter_inline 을 최소로만 적어도 게이트가 끝까지 돌아야 한다.
+G="$PROBE/go"; mkdir -p "$G/.claude" "$G/it"; cp -r core/scripts "$G/.claude/"; printf 'x' > "$G/it/a_test.go"
+cat > "$G/.claude/project.json" <<'JSON'
+{"adapter_inline": {"name": "min", "build": "true", "e2e": {"command": "printf '<testsuite><testcase name=\"a\"/></testsuite>' > {REPORT_XML}"}}, "e2e": {"dir": "it"}}
+JSON
+(cd "$G" && bash .claude/scripts/runtime_gate.sh .claude/state/sessions/t "" >/dev/null 2>&1)
+chk "최소 inline 어댑터로 게이트 완주" "0 1/1" "$? $(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print('%s/%s'%(r['flows_passed'],r['flows_total']))" "$G/.claude/state/sessions/t/runner.json" 2>/dev/null)"
 # 세팅 설명서는 에이전트마다 하나다. /setup 은 이것으로 에이전트를 소개하고 묻는다.
 # 설명서가 적은 도구와 실제 tools 가 다르면 사용자에게 틀린 소개를 하게 된다.
 chk "세팅 설명서 없는 에이전트" 0 "$(for d in core/agents/*/; do n=$(basename "$d"); [ -f "core/setup/$n.md" ] || echo "$n"; done | wc -l | tr -d ' ')"

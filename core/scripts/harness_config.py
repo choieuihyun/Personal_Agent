@@ -175,7 +175,10 @@ def export_main(argv):
     e2e_ad = ad.get("e2e") or {}
     dev = ad.get("device") or {}
 
-    markers = cfg.get("worktree_markers") or ad.get("detect") or []
+    # 표식이 없으면 하네스 설정 파일 자체를 표식으로 쓴다. 이 워크트리에 설치됐다는 가장 직접적인 증거다.
+    # 비워 두면 게이트가 "유효한 워크트리 아님" 으로 매번 멈춘다. 처음 보는 스택이라 /setup 이
+    # adapter_inline 을 새로 쓰면서 detect 를 빠뜨리는 경우가 여기 걸린다.
+    markers = cfg.get("worktree_markers") or ad.get("detect") or [".claude/project.json"]
     build = expand(ad.get("build") or "", cfg)
     deploy = expand(ad.get("deploy") or "", cfg)
     teardown = expand(ad.get("teardown") or "", cfg)
