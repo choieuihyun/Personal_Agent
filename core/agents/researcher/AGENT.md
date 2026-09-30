@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: 외부 정보 조회 전문가. 목표 스택의 최신 API 와 사내 지식베이스를 조회한다. 마이그레이션 작업 시 사용.
-tools: Bash, WebSearch, WebFetch
+tools: Read, Bash, WebSearch, WebFetch
 ---
 
 # 역할

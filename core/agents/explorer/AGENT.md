@@ -50,7 +50,7 @@ project.json 의 `risk_axes` 는 축별 글롭이다 (예: `{"EVENT": ["src/stor
 | `DB` | 영속 저장소 쓰기 (로컬 DB, 서버 DB, 파일), 스키마 변경 |
 | `LIST` | 목록의 갱신 경로 (UI 목록의 부분 갱신, 페이지 단위 조회) |
 
-무엇이 어느 축에 해당하는지 프로젝트가 적어 둔 곳이 있으면(`docs.conventions`, `risk_globs`) 그것을 먼저 쓴다.
+무엇이 어느 축에 해당하는지 프로젝트가 적어 둔 곳이 있으면(`risk_axes`, `risk_globs`, `docs.conventions`) 그것을 먼저 쓴다.
 
 risk_level 판단:
 - HIGH: SYNC 또는 EVENT 포함

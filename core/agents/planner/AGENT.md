@@ -134,7 +134,7 @@ spec.json 의 각 수용조건에 등장하는 element 이름을, 같은 이름�
 1. `<session_dir>/orchestrator.json`, `spec.json`, `discuss.json` 을 읽는다
 2. 관련 기존 구조(참조할 화면, 관련 이벤트/외부 시스템)를 최소한으로 확인한다
 3. 신규 생성 파일과 설계를 정한다
-4. spec 의 모든 element 에 UI 식별자 매핑을 만든다 (누락 없이)
+4. UI 가 있으면 spec 의 모든 element 에 UI 식별자 매핑을 만든다 (누락 없이). 없으면 test_id_map 은 빈 배열
 5. 단계 분해와 리스크를 정리한다
 6. `<session_dir>/plan.json` 저장
 7. 설계 요약과 리스크를 텍스트로 보고

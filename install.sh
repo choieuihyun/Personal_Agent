@@ -50,7 +50,8 @@ DEST="$TARGET/.claude"
 say() { [ "$DRY" = "1" ] && echo "  (dry-run) $*" || echo "  $*"; }
 
 # 옮길 것: <원본> <대상 하위 경로>
-PAIRS="core/agents:agents core/commands:commands core/scripts:scripts adapters:adapters"
+# setup 은 /setup 이 읽는 에이전트별 세팅 설명서, templates 는 선택지 목록과 문서 뼈대다.
+PAIRS="core/agents:agents core/commands:commands core/scripts:scripts core/setup:setup adapters:adapters templates:templates"
 
 # 1. 대상에서 고친 파일 찾기 (덮으면 사라지는 것)
 CHANGED=""
@@ -61,8 +62,15 @@ for pair in $PAIRS; do
   while IFS= read -r f; do
     rel="${f#$dst/}"
     [ -f "$src/$rel" ] || { CHANGED="$CHANGED\n  ${pair##*:}/$rel (하네스에 없는 파일)"; continue; }
-    cmp -s "$f" "$src/$rel" || CHANGED="$CHANGED\n  ${pair##*:}/$rel"
-  done < <(find "$dst" -type f -name '*.md' -o -type f -name '*.py' -o -type f -name '*.sh' -o -type f -name '*.json' 2>/dev/null)
+    # 에이전트의 tools 줄은 /setup 이 붙인 외부 도구(agent_tools)가 반영된 자리라 비교에서 뺀다.
+    # 설치 뒤 apply_agent_tools.py 가 다시 반영하므로 사라지지 않는다.
+    if [[ "$rel" == */AGENT.md ]]; then
+      diff -q <(grep -vE '^tools(_extra)?:' "$f") <(grep -vE '^tools(_extra)?:' "$src/$rel") >/dev/null \
+        || CHANGED="$CHANGED\n  ${pair##*:}/$rel"
+    else
+      cmp -s "$f" "$src/$rel" || CHANGED="$CHANGED\n  ${pair##*:}/$rel"
+    fi
+  done < <(find "$dst" -type f \( -name '*.md' -o -name '*.py' -o -name '*.sh' -o -name '*.json' -o -name '*.tmpl' \) 2>/dev/null)
 done
 
 if [ -n "$CHANGED" ] && [ "$FORCE" = "0" ]; then
@@ -107,6 +115,9 @@ fi
 
 [ "$DRY" = "1" ] && { echo; echo "dry-run 이므로 아무것도 쓰지 않았다."; exit 0; }
 
+# 세팅 때 붙인 외부 도구를 다시 반영한다. 복사가 tools 줄을 원본으로 되돌렸기 때문이다.
+(cd "$TARGET" && python3 .claude/scripts/apply_agent_tools.py >/dev/null 2>&1) || echo "  주의: agent_tools 반영 실패 (python3 .claude/scripts/apply_agent_tools.py 로 확인)"
+
 # 5. 설치 직후 상태를 스스로 확인해서 보여준다
 echo
 echo "확인:"
@@ -123,4 +134,5 @@ esac
 rm -rf "$TARGET/.claude/state/sessions/_probe"
 
 echo
-echo "다음: $DEST/project.json 을 채운다. 키 설명은 $HARNESS/templates/README.md"
+echo "다음: 이 프로젝트에서 Claude Code 를 열고 /setup 을 실행한다."
+echo "      에이전트를 하나씩 소개하며 설정, 도메인 지식, 에이전트별 사정을 대화로 채운다."

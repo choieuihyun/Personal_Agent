@@ -154,7 +154,7 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 1. `<session_dir>/orchestrator.json` 읽어서 현재 step_id와 대상 파일 확인
 2. 원본(레거시) 파일 읽기
 3. 신규 파일 읽기
-4. 5개 검증 항목 순서대로 실행
+4. 검증 항목을 순서대로 실행 (해당 없는 항목은 "해당 없음" 으로 기록)
 5. 요약을 텍스트로 쓴다
 6. 맨 끝에 verifier.json 형식의 json 블록을 붙여 반환한다
 

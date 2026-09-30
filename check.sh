@@ -123,6 +123,28 @@ h2=$(printf "src/A.tsx(40,5): error TS1 bad\n" | python3 core/scripts/build_erro
 chk "빌드 에러: 줄이 밀려도 같은 해시" "same" "$([ -n "$h1" ] && [ "$h1" = "$h2" ] && echo same || echo diff)"
 # 모든 에이전트는 프로젝트 보충 칸을 읽는다. 하나라도 빠지면 /setup 이 채운 내용이 그 에이전트에게 안 닿는다.
 chk "보충 칸을 읽지 않는 에이전트" 0 "$(grep -L '^# 프로젝트 보충' core/agents/*/AGENT.md | wc -l | tr -d ' ')"
+# adapter_override 는 어댑터 파일 위에 일부만 덮는다. 로그 명령 하나 바꾸다 빌드 명령이 사라지면 안 된다.
+O="$PROBE/ov/.claude"; mkdir -p "$O"; cp -r adapters "$O/"
+printf '{"adapter": "node-vite-playwright", "adapter_override": {"logs": {"command": "echo L"}, "e2e": {"dir_default": "t"}}}' > "$O/project.json"
+chk "어댑터 일부 덮기 (나머지 유지)" "npm run build|echo L|t" "$(eval "$(HARNESS_PROJECT_JSON="$O/project.json" python3 core/scripts/harness_config.py --export)"; echo "${HC_BUILD_CMD}|${HC_LOGS_CMD}|${HC_E2E_DIR}")"
+# 세팅 설명서는 에이전트마다 하나다. /setup 은 이것으로 에이전트를 소개하고 묻는다.
+# 설명서가 적은 도구와 실제 tools 가 다르면 사용자에게 틀린 소개를 하게 된다.
+chk "세팅 설명서 없는 에이전트" 0 "$(for d in core/agents/*/; do n=$(basename "$d"); [ -f "core/setup/$n.md" ] || echo "$n"; done | wc -l | tr -d ' ')"
+chk "설명서와 실제 tools 불일치" 0 "$(for f in core/setup/*.md; do n=$(basename "$f" .md); a=$(sed -n 's/^tools: //p' "core/agents/$n/AGENT.md" 2>/dev/null); g=$(sed -n 's/^tools: //p' "$f"); [ "$a" = "$g" ] || echo "$n"; done | wc -l | tr -d ' ')"
+# 설치, 외부 도구 연결, 재설치. 재설치가 연결을 지우거나 연결 때문에 멈추면 /setup 결과가 한 번 쓰고 사라진다.
+I="$PROBE/inst"; mkdir -p "$I"; printf '{}' > "$I/package.json"
+bash install.sh "$I" >/dev/null 2>&1
+chk "설치: 설명서와 템플릿 복사" "13 ok" "$(ls "$I/.claude/setup" 2>/dev/null | wc -l | tr -d ' ') $([ -f "$I/.claude/templates/choices.md" ] && [ -f "$I/.claude/templates/DOMAIN.md.tmpl" ] && echo ok)"
+python3 - "$I/.claude/project.json" <<'PYX'
+import json,sys
+p=sys.argv[1]; c=json.load(open(p)); c["agent_tools"]={"researcher":["mcp__docs__query"]}; json.dump(c,open(p,"w"))
+PYX
+(cd "$I" && python3 .claude/scripts/apply_agent_tools.py >/dev/null 2>&1)
+(cd "$I" && python3 .claude/scripts/apply_agent_tools.py >/dev/null 2>&1)
+chk "외부 도구 반영 (두 번 돌려도 한 번)" 1 "$(grep '^tools:' "$I/.claude/agents/researcher/AGENT.md" | grep -o 'mcp__docs__query' | wc -l | tr -d ' ')"
+bash install.sh "$I" >/dev/null 2>&1
+chk "재설치: 도구 연결 때문에 멈추지 않음" 0 "$?"
+chk "재설치: 도구 연결 유지" 1 "$(grep -c '^tools:.*mcp__docs__query' "$I/.claude/agents/researcher/AGENT.md")"
 # core 는 어느 스택도 전제하지 않는다. 걷어 낸 스택 전용 표현이 다시 들어오면 잡는다.
 # 예시로 여러 스택을 나란히 드는 것은 괜찮다. 여기 적은 것은 한 스택을 전제로 한 문장에만 나오던 말이다.
 # 선택지로 보여 줄 것은 templates/choices.md 에 둔다.

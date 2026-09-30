@@ -5,11 +5,12 @@
 | 파일 | 용도 |
 |---|---|
 | `project.json.tmpl` | 도메인 목록, 명령 빈칸, 금지 글롭 등 프로젝트마다 채우는 값 |
-| `CLAUDE.md.tmpl` | 대상 프로젝트의 규칙 문서 뼈대 (아직 없음) |
-| `DOMAIN.md.tmpl` | 도메인 문서 뼈대 (아직 없음) |
-| `choices.md` | 세팅할 때 사용자에게 보여 줄 선택지 (프로젝트 유형, 테스트 도구, 아키텍처, 공유 상태 경로 등). core 에서 걷어 낸 스택 전용 규칙도 여기 있다. 대상 프로젝트로 복사되지 않는다 |
+| `CLAUDE.md.tmpl` | 대상 프로젝트 CLAUDE.md 끝에 `/setup` 이 덧붙이는 하네스 안내 절 |
+| `DOMAIN.md.tmpl` | 도메인 문서 뼈대. `/setup` 이 대화로 채우고 documenter 가 갱신한다 |
+| `choices.md` | 세팅할 때 사용자에게 보여 줄 선택지 (프로젝트 유형, 테스트 도구, 아키텍처, 공유 상태 경로 등). core 에서 걷어 낸 스택 전용 규칙도 여기 있다 |
 
-설치하면 대상 프로젝트의 `.claude/project.json` 이 된다.
+이 폴더는 설치할 때 대상의 `.claude/templates/` 로 통째로 복사되고 `/setup` 이 읽는다.
+`project.json.tmpl` 만은 대상의 `.claude/project.json` 으로도 복사된다 (이미 있으면 덮지 않는다).
 `core/scripts/harness_config.py` 가 이 경로를 찾는다.
 
 ## project.json 키
@@ -24,6 +25,7 @@ json 에는 주석을 못 쓰므로 설명은 여기 둔다.
 | `project_root` | 저장소 루트 절대경로. 비우면 `.claude` 의 상위로 잡는다 | 자동 산출 |
 | `adapter` | `adapters/<이름>.json` 의 파일명 | 런타임 게이트가 명령을 몰라 exit 3 |
 | `adapter_inline` | 어댑터 파일 대신 project.json 안에 직접 적는 어댑터 객체. 있으면 `adapter` 보다 먼저 쓴다. 어댑터 파일을 따로 만들 만큼 공유할 일이 없는 프로젝트에 쓴다. 시나리오가 아직 없는 프로젝트는 `runtime_gate: false` 와 함께 `{"name": ..., "build": "<빌드 또는 테스트 명령>"}` 만 적어도 된다 | `adapter` 를 쓴다 |
+| `adapter_override` | 어댑터 파일 위에 일부만 덮어쓸 값. 예: `{"logs": {"command": "docker compose logs --tail=200"}}`, `{"e2e": {"dir_default": "tests/e2e"}}`. 객체는 키 단위로 합친다 | 어댑터 파일 그대로 |
 | `runtime_gate` | 런타임 게이트를 쓸지. E2E 개념이 없는 프로젝트는 `false` | `true` 로 보고 어댑터를 요구한다 |
 | `vars` | 어댑터 명령의 빈칸을 채우는 값. `{BUILD_TASK}` 같은 자리 | 빈칸이 남으면 게이트가 실행 전에 멈춘다 |
 | `env` | 게이트 실행 전에 export 할 환경변수 | 생략 |
@@ -40,7 +42,7 @@ json 에는 주석을 못 쓰므로 설명은 여기 둔다.
 | `risk_globs` | 건드리면 파급이 큰 공유 파일 패턴. explorer 가 위험 신호로 올린다 | 위험 가중 없음 |
 | `ui_test_id` | UI 자동화가 요소를 찾는 식별자 속성 이름 (testTag, testID, data-testid 등) | 셀렉터 규칙 검증을 건너뛴다 |
 | `docs.conventions` | 그 프로젝트의 코딩 컨벤션 문서 | 컨벤션 검증을 건너뛴다 |
-| `docs.e2e_guide` | E2E 시나리오 작성 가이드 문서 | 시나리오 작성 절차를 건너뛴다 |
+| `docs.e2e_guide` | E2E 시나리오 작성 가이드 문서 (인증 통과 방법 포함) | spec 이 인증 전제를 주석으로만 남기고, 확정 못 한 수용조건은 verify_manual 로 돌린다. 자동 재생되는 시나리오가 줄어든다 |
 | `docs.domain_map` | 도메인 문서 루트 | documenter 가 도메인 문서를 갱신하지 않는다 |
 | `docs.progress` | 진척표 문서 | 진척 갱신을 건너뛴다 |
 | `docs.study_dir` | 학습 노트를 쌓는 디렉토리 | `/study` 가 파일을 남기지 않는다 |

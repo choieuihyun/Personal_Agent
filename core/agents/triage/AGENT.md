@@ -93,7 +93,8 @@ eval "$(python3 "$REPO/.claude/scripts/harness_config.py" --export "$REPO")"
 
 # 신뢰도
 
-- HIGH: 스크린샷 + runner.json + 런타임 로그가 한 방향을 명확히 가리킴
+- HIGH: 쓸 수 있는 근거(runner.json, 실패 산출물인 스크린샷이나 실패 메시지, 런타임 로그) 중 둘 이상이 한 방향을 명확히 가리킴.
+  화면이나 로그 명령이 없는 스택에서도 HIGH 에 닿을 수 있어야 한다
 - MEDIUM: 근거는 있으나 다른 분류 가능성도 남음
 - LOW: 근거 불충분 (이 경우 ENV_STATE 또는 HUMAN_GATE 쪽으로 보수적 판단)
 

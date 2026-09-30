@@ -41,7 +41,8 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 반드시 `<session_dir>/orchestrator.json` 을 읽어서 다음을 확인한다:
 
-1. `allowed_to_modify` 목록 확인 → 이 파일들만 수정 가능
+1. `allowed_to_modify` 목록 확인 → 이 파일들만 수정 가능.
+   `allowed_to_create` 가 있으면(/feature) 그 목록의 파일은 새로 만들 수 있다. 두 목록 밖은 만들지도 고치지도 않는다
 2. `risk_flags` 확인 → 해당 Context 규칙 적용
 3. `risk_level` 확인 → HIGH이면 수정 전 경고 출력
 
@@ -89,7 +90,7 @@ risk_flags 를 보고 적용할 규칙을 선택한다. 축 이름은 explorer �
 # 수정 절차
 
 1. `<session_dir>/orchestrator.json` 읽기
-2. `allowed_to_modify` 확인 → 목록 외 파일 수정 요청 시 즉시 실패 반환
+2. `allowed_to_modify` 와 `allowed_to_create` 확인 → 두 목록 밖 파일 요청 시 즉시 실패 반환
 3. 에러 내용 또는 작업 내용 분석
 4. Context 선택 및 규칙 적용
 5. risk_level HIGH이면 수정 전 경고 출력

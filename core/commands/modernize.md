@@ -187,10 +187,9 @@ session_dir: <SESSION_DIR>
 
 컨벤션 준수 필수:
 - 색상/테마 규칙은 `docs.conventions` 를 따른다
-- 인터랙티브 요소(버튼/입력/주요 목록)에 의미 기반 snake_case 로 `ui_test_id` 식별자를 부여한다
+- (UI 가 있고 `ui_test_id` 가 설정돼 있을 때) 인터랙티브 요소(버튼/입력/주요 목록)에 의미 기반 snake_case 로 식별자를 부여한다
 - 식별자 부여는 동작 중립이므로 1:1 동작 보존 원칙의 예외 (원본에 없어도 추가)
-- 기계 확정 항목은 수정을 마치기 전에 스스로 돌려 본다:
-  `python3 .claude/scripts/dod_check.py <바꾼 파일들>`
+- 기계 확정 항목(`dod_checks`)은 규칙을 읽고 지켜 쓴다. 실행 확인은 3단계 verifier 가 한다 (implementer-modernize 에는 Bash 가 없다)
 
 수정 내용 검증 (/fix와 동일):
 - changed_lines == 0 → FAILED_MEANINGLESS_DIFF
@@ -226,11 +225,11 @@ builder에게 추가 전달 정보 없음 (session_dir만 있으면 충분).
 | verifier | builder | 판단 |
 |---|---|---|
 | PASS | 성공 | 4단계로 |
-| PASS | 실패 | implementer 재호출 (빌드 에러 수정) |
-| FAIL | 성공 | implementer 재호출 (검증 실패 항목 수정) |
-| FAIL | 실패 | implementer 재호출 (양쪽 결과 모두 전달) |
+| PASS | 실패 | implementer-modernize 재호출 (빌드 에러 수정) |
+| FAIL | 성공 | implementer-modernize 재호출 (검증 실패 항목 수정) |
+| FAIL | 실패 | implementer-modernize 재호출 (양쪽 결과 모두 전달) |
 
-implementer 재호출 시 verifier.json의 findings와 builder.json의 에러를 함께 전달한다.
+implementer-modernize 재호출 시 verifier.json의 findings와 builder.json의 에러를 함께 전달한다.
 수정 후 다시 3단계(verifier + builder 병렬)로 돌아온다.
 
 ---

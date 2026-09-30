@@ -60,6 +60,18 @@ def load(project_dir=None):
     return cfg
 
 
+def _merge(base, over):
+    # adapter_override 를 어댑터 파일 위에 덮는다. 객체는 키 단위로 내려가 합치고, 나머지는 통째로 바꾼다.
+    # adapter_inline 은 어댑터를 통째로 대신하므로, 로그 명령 하나만 바꾸려고 쓰면 빌드와 재생 명령이 사라진다.
+    # 일부만 바꾸는 길이 따로 있어야 한다.
+    if not isinstance(over, dict):
+        return base
+    out = dict(base)
+    for k, v in over.items():
+        out[k] = _merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
 def adapter(cfg):
     # project.json 이 가리키는 어댑터 json 을 읽는다. 없으면 None.
     # adapter 는 "구조가 다른 것"을 담는다. gradle 이냐 npm 이냐, maestro 냐 playwright 냐.
@@ -79,7 +91,7 @@ def adapter(cfg):
         if os.path.isfile(cand):
             try:
                 with open(cand, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    return _merge(json.load(f), cfg.get("adapter_override"))
             except (ValueError, OSError):
                 return None
     return None

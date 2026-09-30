@@ -116,11 +116,12 @@ builder 는 에러에서 파일과 줄을 뽑아 신뢰도를 매긴다. 형식�
 | 안드로이드 리소스 처리, 매니페스트 병합 | 태스크 이름과 리소스 경로 |
 | python | `File "파일", line 줄` |
 
-저장 위치: 어댑터 (에러 패턴 키는 다음 단계에서 추가)
+저장 위치: 어댑터의 `error_patterns`. 공유 어댑터를 쓰면 `project.json` 의 `adapter_override.error_patterns`
 
 ## 외부 지식 도구
 
-researcher, tutor, documenter 는 기본으로 WebSearch 와 WebFetch 만 쓴다. 아래를 연결하면 그 에이전트의 `tools:` 에 도구 이름을 더한다.
+researcher 와 tutor 는 기본으로 WebSearch 와 WebFetch 만 쓰고, documenter 는 파일만 쓴다. 아래를 연결하면 그 에이전트의 tools 에 도구 이름이 더해진다.
+연결은 에이전트 파일을 고치지 않고 `project.json` 의 `agent_tools` 에 적는다. `apply_agent_tools.py` 가 반영하고, 재설치해도 다시 반영된다.
 
 | 용도 | 예 |
 |---|---|
