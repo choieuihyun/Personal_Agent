@@ -43,7 +43,18 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 - spec.json 의 각 acceptance_criteria 를 달성하는 step 이 plan.json 에 있는가
 - 커버되지 않는 수용조건이 있으면 UNCOVERED_CRITERIA (HIGH)
 
-## 2. UI 식별자 계약 완전성 (필수)
+## 2. 수용조건 검증 수단 (필수)
+
+호출 프롬프트의 verify_mode 에 따라 둘 중 하나를 본다.
+
+**verify_mode 가 test 일 때** (게이트가 꺼진 프로젝트)
+- verify_manual=false 인 모든 수용조건에 plan.json 의 ac_tests 항목이 있는가. 없으면 UNCOVERED_CRITERIA (HIGH)
+- 그 테스트 파일이 allowed_to_create 나 modify_hint 에 있는가. 없으면 implementer 가 만들 수 없다. STRUCTURE_GAP (HIGH)
+- 아래 UI 식별자 항목은 해당 없다
+
+**verify_mode 가 scenario 일 때** 아래 UI 식별자 계약을 본다.
+
+### UI 식별자 계약 완전성
 
 - runtime_observable=true 인 모든 수용조건의 act_element / assert_element 가 plan.json 의 test_id_map 에 매핑돼 있는가
 - 누락 시 MISSING_TEST_ID (HIGH). 이게 빠지면 런타임 게이트가 요소를 못 찾아 무력화된다

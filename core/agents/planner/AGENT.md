@@ -59,9 +59,18 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 - 그 문서가 지정한 기준 화면(참조 구현)을 reuse_patterns 에 명시한다
 - 참고할 컨벤션 문서 절이 있으면 docs_to_read 에 적는다. 읽지 않고 설계하지 않는다
 
+## 수용조건 테스트 (verify_mode 가 test 일 때 필수)
+
+게이트가 꺼진 프로젝트는 수용조건을 테스트로 검증한다. spec.json 의 test 블록마다 그 테스트를 둘 파일을 정해 `ac_tests` 에 적는다.
+- 위치와 이름은 기존 테스트를 본뜬다 (예: `tests/test_<모듈>.py`, `src/test/.../<클래스>Test.kt`)
+- 새 테스트 파일은 allowed_to_create 에, 기존 테스트 파일에 더하면 modify_hint 에 넣는다. 안 넣으면 implementer 가 만들 수 없다
+- 형식: `"ac_tests": [{"ac": "AC1", "file": "viewer/tests/test_flows.py", "name": "test_decrement_to_one"}]`
+- 이 모드에서는 UI 식별자 매핑(test_id_map)을 만들지 않는다 (빈 배열)
+
 ## UI 식별자 매핑 (런타임 게이트 계약, UI 가 있을 때 필수)
 
-UI 가 없는 프로젝트(`project.has_ui` 가 false)면 test_id_map 은 빈 배열로 둔다.
+UI 가 없는 프로젝트(`project.has_ui` 가 false)이거나 verify_mode 가 test 면 test_id_map 은 빈 배열로 둔다.
+UI 식별자는 런타임 게이트가 화면 요소를 찾는 데 쓰인다. 게이트가 안 도는 프로젝트에서는 쓸 곳이 없다.
 UI 가 있는데 `ui_test_id` 가 비어 있으면 속성 이름을 추측하지 않고 risks 에 "UI 식별자 속성 미설정" 을 적는다.
 
 spec.json 의 각 수용조건에 등장하는 element 이름을, 같은 이름의 UI 자동화 식별자로 부여할 위치를 계획한다.
@@ -114,6 +123,9 @@ spec.json 의 각 수용조건에 등장하는 element 이름을, 같은 이름�
   ],
   "test_id_map": [
     {"element": "favorite_button", "test_id": "favorite_button", "location": "어느 화면의 어느 영역"}
+  ],
+  "ac_tests": [
+    {"ac": "AC1", "file": "test 모드에서 이 수용조건 테스트를 둘 파일", "name": "테스트 이름"}
   ],
   "events": [
     {"name": "신규 이벤트명 (없으면 항목 생략)", "subscribers": ["화면"], "requires_human_gate": true}

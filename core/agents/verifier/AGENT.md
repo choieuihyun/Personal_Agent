@@ -57,9 +57,17 @@ python3 "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/scripts/dod_check.py" <추가/수
 - 하드코딩: 색상, 문구, 설정값을 프로젝트의 토큰이나 설정 체계 대신 박아 넣지 않았는지
 - 수용조건: spec.json 의 각 수용조건을 달성하는 코드 경로가 실제로 있는지 (없으면 DOD, MEDIUM)
 
-## 2. UI 식별자 (UI 가 있을 때)
+## 2. 수용조건 검증 수단
 
-`project.has_ui` 가 false 면 해당 없음.
+호출 프롬프트의 verify_mode 에 따라 둘 중 하나를 본다.
+
+**verify_mode 가 test 일 때** (게이트가 꺼진 프로젝트): plan.json 의 ac_tests 마다 그 테스트가 실제로 생겼는지 본다.
+- 파일에 그 테스트가 없으면 DOD(MEDIUM) "수용조건 AC<n> 의 테스트가 없음"
+- 테스트는 있는데 spec 의 test 블록이 말한 것(call, expect)을 확인하지 않으면 DOD(MEDIUM)
+- 테스트를 돌리는 것은 builder 몫이다. verifier 는 있는지와 무엇을 확인하는지만 본다
+- 아래 UI 식별자 확인은 해당 없다
+
+**verify_mode 가 scenario 일 때**: UI 식별자를 본다. `project.has_ui` 가 false 면 해당 없음.
 spec.json 의 runtime_observable 수용조건 element 에 대응하는 UI 식별자(`ui_test_id` 속성)가 실제 코드에 부여됐는지 확인한다.
 누락 시 MISSING_TEST_ID(MEDIUM). 이 식별자가 런타임 게이트의 셀렉터 근거다.
 UI 가 있는데 `ui_test_id` 가 비어 있으면 검증할 근거가 없다는 것 자체를 MISSING_TEST_ID(MEDIUM) 로 남긴다.

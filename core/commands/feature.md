@@ -42,6 +42,22 @@ python3 .claude/scripts/harness_version.py
 출력이 있으면 사용자에게 첫머리에 그 줄을 그대로 한 번 알리고 **계속 진행한다.** 업데이트 때문에 멈추거나 대신 재설치하지 않는다.
 재설치는 사용자가 정한다. 출력이 없으면 아무 말도 하지 않는다.
 
+### 검증 방식 정하기 (게이트가 켜져 있나)
+
+```bash
+eval "$(python3 .claude/scripts/harness_config.py --export)"; echo "HC_OK=$HC_OK"
+```
+
+- `HC_OK=1`: 게이트가 켜져 있다. 수용조건은 **명세로 만든 시나리오**를 런타임 게이트로 재생해 검증한다 (`verify_mode: "scenario"`)
+- `HC_OK=2`: 게이트가 꺼져 있다 (E2E 가 없는 프로젝트). 수용조건은 **단위 테스트나 통합 테스트**로 만들고,
+  빌드 단계가 그 테스트를 돌려 검증한다 (`verify_mode: "test"`). 7.5단계는 건너뛴다
+- 그 밖(0): 설정이 없다. 「/setup 을 먼저」 라고 알리고 멈춘다
+
+`verify_mode` 를 orchestrator.json 에 기록하고, spec, planner, plan-checker, verifier 를 부를 때 프롬프트 상단에 함께 적는다.
+
+`test` 모드에서 빌드 명령이 테스트를 돌리지 않으면 수용조건을 검증할 길이 없다. 어댑터의 빌드 명령(`HC_BUILD_CMD`)에
+테스트 실행이 들어 있는지 보고, 없어 보이면 시작 전에 사용자에게 알린다 ("새 테스트를 만들어도 빌드가 돌리지 않아요").
+
 
 `${SESSION_DIR}/orchestrator.json` 을 아래 초기값으로 생성한다.
 
@@ -65,6 +81,7 @@ python3 .claude/scripts/harness_version.py
   "risk_flags": [],
   "risk_level": "LOW",
   "human_gate_required": false,
+  "verify_mode": null,
   "approval_status": "PENDING",
   "approved_scope": null,
   "spec_attempt": 0,
@@ -158,7 +175,8 @@ orchestrator.json status 를 "SPEC" 으로 업데이트한다. spec_attempt 를 
 
 **spec 에이전트를 호출한다** (프롬프트 상단에 session_dir 명시).
 
-에이전트는 discuss.json 을 E2E 변환 가능한 수용조건으로 동결해 `${SESSION_DIR}/spec.json` 을 저장한다.
+에이전트는 discuss.json 을 수용조건으로 동결해 `${SESSION_DIR}/spec.json` 을 저장한다.
+`scenario` 모드면 시나리오로 옮길 수 있게(e2e 블록), `test` 모드면 테스트로 옮길 수 있게(test 블록) 쓴다.
 
 완료 후 spec.json 을 읽는다.
 
@@ -166,8 +184,9 @@ orchestrator.json status 를 "SPEC" 으로 업데이트한다. spec_attempt 를 
 
 - acceptance_criteria 가 비어있으면 spec 재호출
 - open_questions 가 남아있으면 AskUserQuestion 으로 사용자에게 확인 후 spec 재호출
-- runtime_observable=true 인 수용조건이 하나도 없으면 (시나리오로 관찰할 수 없는 기능) 그 사실을 기록한다.
+- `scenario` 모드: runtime_observable=true 인 수용조건이 하나도 없으면 (시나리오로 관찰할 수 없는 기능) 그 사실을 기록한다.
   이 경우 뒤 런타임 게이트는 NO_FLOW 통과가 되며 보고에 명시된다
+- `test` 모드: verify_manual=false 인 수용조건마다 test 블록이 있어야 한다. 없으면 spec 재호출
 
 ---
 
@@ -177,8 +196,9 @@ orchestrator.json status 를 "PLAN" 으로 업데이트한다.
 
 **planner 에이전트를 호출한다** (프롬프트 상단에 session_dir 명시).
 
-에이전트는 spec.json 을 프로젝트 관례에 맞는 파일/이벤트 계획과 UI 식별자 매핑으로 설계해
-`${SESSION_DIR}/plan.json` 을 저장한다.
+에이전트는 spec.json 을 프로젝트 관례에 맞는 파일/이벤트 계획으로 설계해 `${SESSION_DIR}/plan.json` 을 저장한다.
+`scenario` 모드면 UI 식별자 매핑(test_id_map)을, `test` 모드면 수용조건별 테스트 파일(ac_tests)을 함께 설계한다.
+`test` 모드의 테스트 파일은 allowed_to_create 나 modify_hint 에 들어가야 implementer 가 만들 수 있다.
 
 완료 후 plan.json 을 읽는다.
 
@@ -272,9 +292,11 @@ orchestrator.json status 를 "IMPLEMENTING" 으로 업데이트한다. attempt_c
 
 **implementer 에이전트를 호출한다** (프롬프트 상단에 session_dir 명시).
 전달 정보:
-- plan.json (설계, steps, test_id_map)
+- verify_mode
+- plan.json (설계, steps, scenario 모드면 test_id_map, test 모드면 ac_tests)
 - spec.json (수용조건)
 - 최종 수정 범위: allowed_to_modify + allowed_to_create
+- test 모드면: ac_tests 의 테스트를 이번 수정에서 코드와 함께 만든다고 명시한다
 
 **코드 출력 금지 규칙 (필수):**
 - 변경 코드를 응답 텍스트에 출력하지 않는다
@@ -282,7 +304,7 @@ orchestrator.json status 를 "IMPLEMENTING" 으로 업데이트한다. attempt_c
 - 대용량 파일은 500줄 이하 단위로 나눠 여러 번 작성한다
 
 **신규 파일 생성 주의:** implementer 는 allowed_to_create 에 없는 파일은 새로 만들지 않는다.
-신규 화면이면 plan 이 정한 화면 구조를 따르고, test_id_map 의 UI 식별자를 인터랙티브 요소에 부여한다.
+신규 화면이면 plan 이 정한 화면 구조를 따르고, scenario 모드면 test_id_map 의 UI 식별자를 인터랙티브 요소에 부여한다.
 색상/테마 규칙은 project.json 의 `docs.conventions` 문서를 따른다.
 
 **feature-mode 지시 (필수, sync 충돌 해소):** implementer 의 실패 반환 조건에는
@@ -325,6 +347,10 @@ implementer 재호출 시 6단계로 돌아가며 attempt_count 종료조건이 
 ---
 
 ## 7.5단계: 런타임 게이트 (RUNTIME) - SPEC 주도
+
+**`test` 모드면 이 단계를 건너뛰고 8단계로 간다.** 수용조건 테스트는 7단계 빌드가 이미 돌렸다.
+orchestrator.json 에 `runtime: "skipped_test_mode"` 를 남기고, 최종 보고에 "수용조건은 빌드에 포함된 테스트로 검증했다" 와
+테스트 파일 목록(plan.json 의 ac_tests)을 적는다. 시나리오 파일을 만들지 않는다. 게이트를 부르지 않는다.
 
 verifier PASS + builder 성공 후 실행한다. 구현이 수용조건을 실제로 만족하는지 실기기로 검증한다.
 이 단계가 이 커맨드의 핵심 신규 설계다. E2E 시나리오를 구현이 아니라 spec 에서 만든다.
@@ -470,7 +496,7 @@ human_gate_required 가 true 가 된 상황:
 - SESSION_ID 보고
 - 생성/수정된 파일 목록
 - 빌드 성공 확인
-- 런타임 게이트 결과 (통과 / SKIP / NO_FLOW 중 무엇인지 명시)
+- 런타임 게이트 결과 (통과 / SKIP / NO_FLOW 중 무엇인지 명시). test 모드면 "게이트 대신 빌드에 포함된 테스트로 검증" 과 수용조건별 테스트 이름
 - 수동 검증 항목(verify_manual=true 수용조건, 예: 두 기기 간 동기화) 목록을 사용자에게 남긴다
 - documenter 결과 (DOMAIN.md 생성/갱신, 노트 앱 동기화 여부)
 

@@ -46,6 +46,22 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 기본 경로로 폴백하지 않는다.
 
+# 검증 방식 (호출 프롬프트의 verify_mode)
+
+수용조건을 무엇으로 검증할지는 프로젝트에 따라 다르다. 호출 프롬프트 상단의 `verify_mode` 를 따른다.
+
+| verify_mode | 언제 | 수용조건마다 쓰는 것 |
+|---|---|---|
+| `scenario` | 런타임 게이트가 켜진 프로젝트 (E2E 가 있다) | `e2e` 블록. 아래 진입 프리앰블 규칙을 따른다 |
+| `test` | 게이트가 꺼진 프로젝트 (E2E 가 없다) | `test` 블록. 단위 테스트나 통합 테스트로 옮길 수 있게 쓴다 |
+
+`test` 모드에서는:
+- 모든 수용조건을 runtime_observable false 로 둔다. 시나리오로 재생하지 않는다
+- `test` 블록에 무엇을 부르고(`call`: 함수, 클래스, API, 명령), 어떤 입력을 주고(`given`), 무엇을 확인하는지(`expect`) 적는다.
+  테스트 파일 위치와 이름 규칙은 기존 테스트와 `docs.conventions` 를 본뜬다 (planner 가 파일을 정한다)
+- 화면에서만 확인되는 조건(모양, 배치)은 테스트로 옮길 수 없다. verify_manual true 로 사람 확인 항목에 남긴다
+- 진입 프리앰블, UI 식별자, element 이름 규칙은 적용하지 않는다
+
 # 수용조건 작성 규칙 (핵심)
 
 각 수용조건은 Given/When/Then 으로 쓰되, Given/When/Then 이 E2E 액션으로 1:1 변환 가능해야 한다.
@@ -133,6 +149,20 @@ entry 작성 원칙:
 
 `surface` 는 조작이 일어나는 곳이다 (화면 이름, 엔드포인트, 명령 이름).
 runtime_observable=false 인 수용조건은 e2e 블록을 생략하고 검증 기준을 then 에 서술한다.
+
+`test` 모드의 수용조건은 e2e 블록 대신 test 블록을 쓴다:
+
+```json
+{
+  "id": "AC1",
+  "given": "수량 2 인 항목이 있는 장바구니",
+  "when": "그 항목의 수량을 하나 줄임",
+  "then": "수량이 1 이 되고 합계가 다시 계산됨",
+  "runtime_observable": false,
+  "verify_manual": false,
+  "test": {"call": "cartStore.decrement", "given": "items=[{id:apple, qty:2, price:1000}]", "expect": "qty=1, total=1000"}
+}
+```
 
 # 작업 절차
 

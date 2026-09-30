@@ -66,7 +66,8 @@ risk_flags 를 보고 적용할 규칙을 선택한다. 축 이름은 explorer �
 
 ## UI 자동화 식별자
 
-- UI 가 없는 프로젝트(`project.has_ui` 가 false)면 이 절은 해당 없다
+- UI 가 없는 프로젝트(`project.has_ui` 가 false)이거나 /feature 의 verify_mode 가 test 면 이 절은 해당 없다 (식별자를 쓸 게이트가 없다)
+- /feature 의 verify_mode 가 test 면 plan.json 의 ac_tests 테스트도 이번 수정에서 함께 만든다. 테스트 없이 기능만 만들면 verifier 가 실패로 돌려보낸다
 - project.json 의 `ui_test_id` 가 비어 있지 않으면, 수정하는 화면의 인터랙티브 요소
   (버튼/클릭 영역/입력 필드/주요 목록)에 그 식별자가 없을 때 의미 기반 snake_case 로 추가한다 (boy scout)
 - 식별자 부여는 동작 중립이므로 동작 로직 재작성 금지 원칙에 위배되지 않는다. 원본에 없어도 추가한다
