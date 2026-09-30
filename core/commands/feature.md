@@ -420,7 +420,7 @@ orchestrator.json status 를 "DOCUMENTING" 으로 업데이트한다.
 - 변경/생성 파일 목록 (`changed_files`)
 - 도메인 (`domains`: 게이트에 넘긴 TAGS 와 같은 값)
 - 신규 기능 요약 (spec.json goal)
-- 문서 모드: 해당 도메인 DOMAIN.md 가 있으면 update, 없으면 _TEMPLATE.md 에서 신규 생성(create)
+- 문서 모드: 해당 도메인 DOMAIN.md 가 있으면 update, 없으면 `.claude/templates/DOMAIN.md.tmpl` 로 신규 생성(create)
 
 ### 시나리오 셀렉터 강화 (선택)
 

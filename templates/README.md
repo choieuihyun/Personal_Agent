@@ -36,6 +36,7 @@ json 에는 주석을 못 쓰므로 설명은 여기 둔다.
 | `dod_checks` | 화면/모듈 완료 기준 중 기계로 확정되는 항목. `{id, applies_to, require\|forbid, message}` 목록. `core/scripts/dod_check.py` 가 돌린다 | 기계 검증을 못 했다고 보고한다 (통과가 아니다) |
 | `forbidden_globs` | 에이전트가 절대 못 고치는 파일 패턴 | 금지 없음 |
 | `stack.*` | 목표 언어/UI 와 레거시 언어/UI 이름. `/modernize` 가 "무엇에서 무엇으로" 를 여기서 읽는다 | 마이그레이션 방향을 몰라 인테이크에서 묻는다 |
+| `risk_axes` | 위험 축별 글롭. `{"SYNC": [...], "EVENT": [...], "THREAD": [...], "DB": [...], "LIST": [...]}`. 걸리면 explorer 가 그 축을 무조건 올린다. 축 이름은 이 다섯 개로 고정이다 | 축 판정이 매번 explorer 재량이 된다 |
 | `risk_globs` | 건드리면 파급이 큰 공유 파일 패턴. explorer 가 위험 신호로 올린다 | 위험 가중 없음 |
 | `ui_test_id` | UI 자동화가 요소를 찾는 식별자 속성 이름 (testTag, testID, data-testid 등) | 셀렉터 규칙 검증을 건너뛴다 |
 | `docs.conventions` | 그 프로젝트의 코딩 컨벤션 문서 | 컨벤션 검증을 건너뛴다 |
@@ -49,6 +50,7 @@ json 에는 주석을 못 쓰므로 설명은 여기 둔다.
 | `learning.doc_domains` | 공식 문서 도메인 목록. WebSearch 를 여기로 제한한다 | 검색 제한 없이 돌아 블로그가 섞인다 |
 | `learning.source_root` | 이 저장소의 실제 사용처를 grep 할 루트 | 대조를 못 해 학습이 문서 요약이 된다 |
 | `learning.small_samples` | 학습 표본으로 쓸 작은 파일 목록 | 대형 파일이 표본으로 뽑힐 수 있다 |
+| `learning.source_globs` | 샘플 저장소에서 받아 둘 소스 파일 글롭 (예: `**/*.kt`, `**/*.tsx`, `**/*.go`). 희소 체크아웃에 쓴다 | 문서(.md)만 받는다. 샘플 코드 근거가 없다 |
 | `crash_provider` | 크래시 인테이크 바인딩. `kind` 가 `none` 이면 `/fix --crash` 는 미설정이라고 말하고 멈춘다 | `none` |
 
 ## 왜 빈칸을 코드가 아니라 여기에 두나

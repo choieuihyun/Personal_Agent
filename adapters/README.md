@@ -19,6 +19,7 @@
 | `command` | 재생 명령. `{REPORT_XML}` 자리에 JUnit 리포트를 **파일로** 남겨야 한다. 화면에만 찍으면 게이트는 결과를 못 읽는다 | playwright 는 `PLAYWRIGHT_JUNIT_OUTPUT_NAME` 으로 경로를 준다 |
 | `tag_option` | 태그로 좁힐 때 붙는 옵션. `{TAGS}` 자리에 태그가 들어간다 | `--include-tags={TAGS}` |
 | `tag_join` | 태그 여러 개를 잇는 구분자. 생략하면 콤마 | playwright 는 정규식이라 `\|`, pytest 는 ` or ` |
+| `error_patterns` | (선택, `e2e` 밖 최상위) 빌드 에러에서 파일과 줄을 뽑는 정규식 목록. `file`, `line` 이름 그룹 필수. 흔한 형식(파일:줄, 파일(줄,열), File "x", line n)은 기본으로 읽으므로 그 밖의 형식만 적는다 | `"(?P<file>\\S+\\.vue)@(?P<line>\\d+)"` |
 | `tag_scan` | 시나리오 파일에서 태그를 읽는 규칙. import 경로 같은 것이 태그로 잡히지 않게 한다 | `@playwright/test` 가 도메인 `playwright` 로 잡히면 안 된다 |
 
 | 어댑터 | 대상 | 상태 |

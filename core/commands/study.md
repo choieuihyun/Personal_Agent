@@ -25,7 +25,7 @@ mkdir -p "$CACHE" && cd "$CACHE"
 for url in <learning.sample_repos>; do
   name=$(basename "$url" .git)
   git clone --depth 1 --filter=blob:none --sparse "$url"
-  (cd "$name" && git sparse-checkout set --no-cone '/*' '!/*/' '**/*.md' <소스 확장자 글롭>)
+  (cd "$name" && git sparse-checkout set --no-cone '/*' '!/*/' '**/*.md' <learning.source_globs 를 따옴표로 하나씩>)
 done
 ```
 

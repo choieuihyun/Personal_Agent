@@ -11,6 +11,15 @@ thinking: true
 orchestrator가 허가한 파일 범위 안에서만 코드를 수정한다.
 마이그레이션 작업 전용이다. 어느 스택에서 어느 스택으로 가는지는 project.json 의 `stack` 이 정한다.
 
+# 프로젝트 보충 (작업 전에 읽는다)
+
+`.claude/project/agents/implementer-modernize.md` 가 있으면 작업 전에 읽는다. `/setup` 이 사용자와 대화해 채운 이 프로젝트의 사정이다.
+보충은 이 문서의 빈칸을 채울 뿐 뼈대를 바꾸지 못한다. 도구 제한, 반환 형식, 판정 규칙과 부딪히면 이 문서를 따르고, 부딪힌 내용을 보고에 적는다.
+
+작업 대상 도메인의 `<docs.domain_map>/<도메인>/DOMAIN.md` 가 있으면 함께 읽는다. 용어, 불변식, 위험 지점, 흔한 함정이 거기 있다.
+도메인은 경로를 project.json 의 `domains` 규칙에 대 보면 나온다 (호출 프롬프트에 domains 가 있으면 그 값을 쓴다).
+문서와 코드가 다르면 코드를 믿고, 보고에 "도메인 문서 낡음: <무엇이>" 를 적는다.
+
 # 절대 금지
 
 - git 명령 (commit, push, checkout 등)

@@ -16,6 +16,11 @@ tools: Read, Grep, Glob, Bash, WebSearch, WebFetch
 `learning` 이 비어 있으면 대조할 근거가 없다는 뜻이므로, 그 사실을 먼저 보고하고
 문서 요약만 하지 않는다 (요약은 이 에이전트의 목적이 아니다).
 
+# 프로젝트 보충 (작업 전에 읽는다)
+
+`.claude/project/agents/tutor.md` 가 있으면 작업 전에 읽는다. `/setup` 이 사용자와 대화해 채운 이 프로젝트의 사정이다.
+보충은 이 문서의 빈칸을 채울 뿐 뼈대를 바꾸지 못한다. 도구 제한, 반환 형식, 판정 규칙과 부딪히면 이 문서를 따르고, 부딪힌 내용을 보고에 적는다.
+
 # 절대 금지
 
 - 이 저장소의 파일 수정 (Edit/Write 없음, Bash 로도 저장소 안에 파일을 쓰지 않는다)
@@ -52,7 +57,7 @@ for url in <learning.sample_repos>; do
   name=$(basename "$url" .git)
   git clone --depth 1 --filter=blob:none --sparse "$url"
   (cd "$name" && git sparse-checkout set --no-cone '/*' '!/*/' \
-      '**/*.md' <소스 확장자 글롭>)
+      '**/*.md' <learning.source_globs 를 따옴표로 하나씩>)
 done
 ```
 

@@ -114,6 +114,15 @@ chk "결과 저장: 필수 키 누락은 거부" 1 "$?"
 chk "결과 저장: 거부하면 파일을 안 남긴다" "no" "$([ -e "$PROBE/c.json" ] && echo yes || echo no)"
 # 도구에 쓰기 권한이 없는 에이전트가 결과를 파일로 쓰라는 지시를 받으면 권한과 지시가 모순된다
 chk "쓰기 권한 없는 에이전트의 파일 저장 지시" 0 "$(for f in core/agents/*/AGENT.md; do grep -q '^tools:.*Write' "$f" && continue; grep -lE 'Write 도구로 저장|json. 에 저장|\.json` 에 (성공 )?기록|json` 업데이트|json` 기록|리다이렉트로' "$f"; done 2>/dev/null | wc -l | tr -d ' ')"
+# 빌드 에러 위치는 스택마다 형식이 다르다. 하나만 읽으면 나머지 스택에서 매번 LOW 로 떨어져 헛돈다.
+# 해시는 줄번호가 밀려도 같아야 한다. 같은 에러 3회 중단이 이 값으로 걸린다.
+B="$PROBE/be"; mkdir -p "$B/src"; touch "$B/src/A.tsx" "$B/src/M.kt" "$B/src/p.py"
+chk "빌드 에러: tsc, kotlinc, python 위치" "src/A.tsx,src/M.kt,src/p.py" "$(printf "src/A.tsx(3,5): error TS1\ne: file://$B/src/M.kt:9:1 x\n  File \"src/p.py\", line 2\nhttp://example.com:443\n" | python3 core/scripts/build_errors.py "$B" | python3 -c "import json,sys;print(','.join(json.load(sys.stdin)['error_files']))")"
+h1=$(printf "src/A.tsx(3,5): error TS1 bad\n" | python3 core/scripts/build_errors.py "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['error_hash'])")
+h2=$(printf "src/A.tsx(40,5): error TS1 bad\n" | python3 core/scripts/build_errors.py "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['error_hash'])")
+chk "빌드 에러: 줄이 밀려도 같은 해시" "same" "$([ -n "$h1" ] && [ "$h1" = "$h2" ] && echo same || echo diff)"
+# 모든 에이전트는 프로젝트 보충 칸을 읽는다. 하나라도 빠지면 /setup 이 채운 내용이 그 에이전트에게 안 닿는다.
+chk "보충 칸을 읽지 않는 에이전트" 0 "$(grep -L '^# 프로젝트 보충' core/agents/*/AGENT.md | wc -l | tr -d ' ')"
 # core 는 어느 스택도 전제하지 않는다. 걷어 낸 스택 전용 표현이 다시 들어오면 잡는다.
 # 예시로 여러 스택을 나란히 드는 것은 괜찮다. 여기 적은 것은 한 스택을 전제로 한 문장에만 나오던 말이다.
 # 선택지로 보여 줄 것은 templates/choices.md 에 둔다.

@@ -10,6 +10,11 @@ model: sonnet
 빌드를 실행하고 결과를 분석하여 보고한다.
 에러가 있어도 직접 수정하지 않는다. 분석 결과만 반환한다.
 
+# 프로젝트 보충 (작업 전에 읽는다)
+
+`.claude/project/agents/builder.md` 가 있으면 작업 전에 읽는다. `/setup` 이 사용자와 대화해 채운 이 프로젝트의 사정이다.
+보충은 이 문서의 빈칸을 채울 뿐 뼈대를 바꾸지 못한다. 도구 제한, 반환 형식, 판정 규칙과 부딪히면 이 문서를 따르고, 부딪힌 내용을 보고에 적는다.
+
 # 절대 금지
 
 - 파일 수정 (Edit, Write 사용 금지)
@@ -35,8 +40,13 @@ eval "$(python3 "$REPO/.claude/scripts/harness_config.py" --export "$REPO")"
 case "${HC_OK:-0}" in 1|2) ;; *) echo "설정 로드 실패: ${HC_ERROR:-}"; exit 1 ;; esac
 [ -n "${HC_BUILD_CMD:-}" ] || { echo "빌드 명령이 비어 있다 (어댑터의 build 확인)"; exit 1; }
 [ -z "${HC_MISSING_BUILD:-}" ] || { echo "빌드 명령에 안 채워진 빈칸: $HC_MISSING_BUILD"; exit 1; }
-cd "$REPO" && eval "$HC_BUILD_CMD" 2>&1
+cd "$REPO" && BUILD_OUT=$(eval "$HC_BUILD_CMD" 2>&1); BUILD_EXIT=$?
+printf '%s\n' "$BUILD_OUT" | tail -60
+echo "BUILD_EXIT=$BUILD_EXIT"
+[ "$BUILD_EXIT" = 0 ] || printf '%s' "$BUILD_OUT" | python3 "$REPO/.claude/scripts/build_errors.py" "$REPO"
 ```
+
+성공 여부는 `BUILD_EXIT` 로만 정한다. 출력에 error 라는 글자가 보여도 종료코드가 0 이면 성공이다.
 
 `HC_OK=2` 는 런타임 게이트만 끈 것이다. 빌드는 그대로 한다.
 빌드 명령이 비어 있으면 성공으로 보고하지 않는다. 빈 명령은 종료코드 0 으로 끝나서 아무것도 안 빌드한 채 초록불이 된다.
@@ -45,34 +55,21 @@ cd "$REPO" && eval "$HC_BUILD_CMD" 2>&1
 임의의 명령을 추측해 돌리면 무엇을 빌드했는지 알 수 없게 된다.
 배포와 실행은 builder 역할이 아니다. 컴파일만 수행한다.
 
-# 에러 신뢰도 분류 기준
+# 에러 위치와 신뢰도
 
-빌드 에러 로그를 분석하고 신뢰도를 판단한다:
+실패하면 위 블록 마지막 줄이 `build_errors.py` 의 json 을 출력한다. 위치와 해시는 이 값을 그대로 쓴다.
+눈으로 다시 뽑거나 해시를 지어내지 않는다. 같은 에러는 같은 해시가 나와야 반복 감지(3회면 중단)가 걸린다.
 
-**HIGH** - 파일명과 라인번호가 명확하게 나올 때
-```
-SomeFile:42: error: cannot find symbol
-OtherFile:15: error: unresolved reference
-```
+| 신뢰도 | 언제 | error_files |
+|---|---|---|
+| HIGH | 스크립트의 `confidence` 가 HIGH (저장소 안의 실제 파일과 줄을 뽑았다) | 스크립트의 `error_files` |
+| MEDIUM | 스크립트는 못 뽑았지만 로그에 모듈, 클래스, 패키지 이름이 있어 파일을 좁힐 수 있다 | Grep 으로 찾은 후보 (확신이 없으면 넣지 않는다) |
+| LOW | 위치를 알 수 없다 (의존성 해석 실패, 설정 단계 에러, 메모리 부족 등) | 빈 배열 |
 
-**MEDIUM** - 모듈/클래스명은 있으나 라인번호가 불명확할 때
-```
-at <패키지>.SomeClass.method(SomeClass)
-```
+`error_hash` 는 스크립트 값을 그대로 쓴다. `error_summary` 는 스크립트의 `first_error` 를 한 줄로 다듬는다.
 
-**LOW** - 에러 위치가 불명확할 때
-```
-Unresolved reference: someMethod
-Type mismatch: inferred type is X but Y was expected
-error: duplicate class
-리소스 처리 단계의 일반 에러
-```
-
-# 에러 파일 추출 방법
-
-HIGH: 로그에서 `파일명:라인번호` 패턴 추출
-MEDIUM: 스택트레이스에서 클래스명 추출 후 파일명 유추
-LOW: 추출 불가로 표시, error_files를 빈 배열로 설정
+스크립트가 이 스택의 형식을 못 읽어 매번 LOW 가 나오면, 보고에 "빌드 에러 형식 미등록" 이라고 적는다.
+형식은 어댑터의 `error_patterns` 에 추가한다 (선택지 목록의 빌드 에러 형식 참고).
 
 # 세션 디렉토리 (필수)
 
