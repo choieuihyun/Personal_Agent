@@ -51,7 +51,15 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 4. 새로 발굴되는 논점 쌍이 없을 때까지 반복한다
 5. 최대 5라운드. 5라운드 도달 시 남은 미해결 논점을 open_questions 로 남기고 종료한다
 
-각 라운드는 AskUserQuestion 으로 던진다. 한 질문에 선택지를 제시하되 사용자가 Other 로 자유입력할 수 있음을 전제한다.
+각 라운드는 사용자에게 묻는다. 한 질문에 선택지를 제시하되 사용자가 자유입력할 수 있음을 전제한다.
+
+묻는 길은 둘이다. 실행 환경에 따라 서브에이전트가 사용자에게 직접 못 물을 수 있으므로 둘 다 지원한다.
+- **직접:** AskUserQuestion 을 부를 수 있으면 그것으로 묻고 라운드를 이어 간다
+- **중계:** 부를 수 없으면(도구가 없거나 거부되면) 이번 라운드 질문을 discuss.json 의 `pending_questions` 에 적고
+  `status: "WAITING_USER"` 로 저장한 뒤 끝낸다. 오케스트레이터가 사용자에게 묻고 답을 `rounds` 에 붙여 다시 부른다.
+  다시 불리면 discuss.json 을 읽어 지난 라운드와 답을 이어받고 다음 라운드로 간다. 이미 답한 것을 다시 묻지 않는다
+
+어느 길이든 토론이 끝나면 `status: "DONE"` 으로 저장한다. 사용자 답을 지어내 채우고 DONE 으로 끝내지 않는다.
 매 라운드 시작 전 필요하면 Grep/Glob 으로 관련 기존 화면/이벤트/서버 코드를 최소한으로 확인해 질문의 근거를 마련한다 (추측 질문 금지).
 
 # 도메인 프로브 체크리스트
@@ -118,10 +126,18 @@ project.json 의 `docs.conventions` 와 `docs.domain_map` 이 가리키는 문�
 
 # 출력 형식
 
-토론 종료 후 `<session_dir>/discuss.json` 을 Write 로 저장한다.
+라운드마다, 그리고 토론 종료 후 `<session_dir>/discuss.json` 을 Write 로 저장한다.
 
 ```json
 {
+  "status": "DONE",
+  "round": 3,
+  "pending_questions": [
+    {"id": "R3Q1", "question": "중계 모드에서 이번 라운드에 사용자에게 물을 질문", "options": ["선택지1", "선택지2"]}
+  ],
+  "rounds": [
+    {"round": 1, "qa": [{"id": "R1Q1", "question": "...", "answer": "사용자 답 원문"}]}
+  ],
   "feature_title": "기능 한 줄 제목",
   "goal": "이 기능이 해결하는 문제 한 줄",
   "in_scope": [
@@ -158,7 +174,7 @@ domain_flags 는 위 프로브 체크리스트에서 실제 해당하는 축만 
 
 1. `<session_dir>/orchestrator.json` 을 읽어 요청 기능 설명 확인
 2. 관련 기존 코드를 최소한으로 확인 (질문 근거 마련)
-3. 도메인 프로브 체크리스트로 라운드별 질문 생성, AskUserQuestion 으로 토론
+3. 도메인 프로브 체크리스트로 라운드별 질문 생성, 직접(AskUserQuestion) 또는 중계(pending_questions)로 토론
 4. 수렴할 때까지 반복 (최대 5라운드)
 5. `<session_dir>/discuss.json` 저장
 6. 합의 범위와 미해결 논점을 텍스트로 요약 보고

@@ -123,9 +123,17 @@ session_dir: <SESSION_DIR>
 
 완료 후 discuss.json 을 읽는다.
 
+**중계 루프.** 서브에이전트가 사용자에게 직접 못 묻는 환경이면 discuss 는 `status: "WAITING_USER"` 와
+`pending_questions` 를 남기고 끝난다. 그때는:
+1. `pending_questions` 를 사용자에게 그대로 묻는다 (선택지가 있으면 AskUserQuestion, 한 번에 하나씩)
+2. 답을 discuss.json 의 `rounds` 에 `{round, qa: [{id, question, answer}]}` 로 붙이고 `pending_questions` 를 비운다
+3. discuss 를 다시 부른다 (같은 session_dir). `status` 가 `DONE` 이 될 때까지 반복한다. `round` 가 5 를 넘으면 멈추고 Human Gate
+답을 오케스트레이터가 대신 정하지 않는다. 사용자가 "모름" 이면 그 말을 그대로 적는다 (discuss 가 open_questions 로 넘긴다).
+
 ### Orchestrator 판단
 
-- discuss.json 이 없거나 in_scope 가 비어있으면 discuss 재호출
+- `status` 가 `WAITING_USER` 면 위 중계 루프로 간다
+- discuss.json 이 없거나 `status` 가 `DONE` 인데 in_scope 가 비어 있으면 discuss 재호출
 - domain_flags.sync 또는 shared_event_new 가 true 면 risk_level 을 최소 MEDIUM 으로 설정
 - domain_flags 를 orchestrator.json risk_flags 에 반영 (SYNC / EVENT / THREAD / DB 등)
 
