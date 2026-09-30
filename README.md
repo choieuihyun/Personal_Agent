@@ -26,23 +26,49 @@ bash install.sh <내 프로젝트>     # 1. 설치
 
 ## 어떻게 도나
 
-`/fix` 한 번은 이렇게 흐른다.
+`/fix` 한 번의 흐름이다. 보라색은 LLM(에이전트), 파란색은 파이썬 스크립트, 초록색은 셸, 주황색은 사람이다.
 
+```mermaid
+flowchart TD
+    START(["/fix 버그 설명"]) --> EX
+
+    EX["explorer<br/>어디를 고칠지 찾는다<br/>(읽기만)"]:::llm --> SV["save_result.py<br/>반환 json 검사 후 저장"]:::py
+    SV --> RISK{"위험도 HIGH?"}
+    RISK -- "예" --> HG(["사람 확인"]):::human
+    HG -- "승인" --> IM
+    RISK -- "아니오" --> IM
+
+    IM["implementer<br/>허가된 파일만 고친다"]:::llm --> BD
+    BD["builder<br/>빌드 실행 (고치지 않음)"]:::llm --> BE["build_errors.py<br/>에러 위치, 해시"]:::py
+    BE --> BOK{"빌드 성공?"}
+    BOK -- "실패" --> IM
+    BOK -- "성공" --> DF["domains_for.py<br/>바뀐 파일로 도메인 태그"]:::py
+
+    DF --> G1
+    subgraph GATE ["runtime_gate.sh (셸, LLM 미개입)"]
+        direction TB
+        G1["harness_config.py<br/>설정 읽기"]:::py --> G2["e2e_tags.py<br/>그 태그의 시나리오 찾기"]:::py
+        G2 --> G3["올리기 → 시나리오 재생 → 내리기"]:::sh
+        G3 --> G4["parse_runner.py<br/>JUnit → runner.json"]:::py
+    end
+
+    G4 --> GOK{"재생 통과?"}
+    GOK -- "통과" --> DOC["documenter<br/>도메인 문서 갱신"]:::llm --> DONE(["완료"])
+    GOK -- "실패" --> TR["triage<br/>실패 원인 4분류"]:::llm
+    TR -- "실제 버그" --> IM
+    TR -- "간헐 실패" --> G1
+    TR -- "시나리오 오류" --> FIXF["오케스트레이터가<br/>시나리오 수정"]:::llm --> G1
+    TR -- "환경 문제" --> HG2(["사람에게 보고"]):::human
+
+    classDef llm fill:#ede7f6,stroke:#5e35b1,color:#1a1a1a
+    classDef py fill:#e3f2fd,stroke:#1565c0,color:#1a1a1a
+    classDef sh fill:#e8f5e9,stroke:#2e7d32,color:#1a1a1a
+    classDef human fill:#fff3e0,stroke:#ef6c00,color:#1a1a1a
+    style GATE fill:#f1f8e9,stroke:#2e7d32
 ```
-/fix
- ├ explorer (LLM)        어디를 고칠지 찾는다              → save_result.py 가 결과를 검사해 저장
- ├ implementer (LLM)     허가된 파일만 고친다
- ├ builder (LLM)         빌드를 돌린다                     → build_errors.py 가 에러 위치와 해시를 뽑는다
- ├ domains_for.py        바뀐 파일로 도메인 태그를 낸다
- ├ runtime_gate.sh (셸)  런타임 게이트
- │   ├ harness_config.py   설정을 읽는다
- │   ├ e2e_tags.py         그 태그의 시나리오가 있는지 본다
- │   ├ 올리기 → 시나리오 재생 → 내리기 (셸이 직접)
- │   ├ parse_runner.py     JUnit 결과를 읽어 runner.json 을 쓴다
- │   └ record_metric.py    메트릭을 쌓는다
- ├ triage (LLM)          실패했으면 원인을 4가지로 분류한다
- └ documenter (LLM)      도메인 문서를 갱신한다
-```
+
+되돌아가는 길에는 모두 상한이 있다. 수정 시도 5회, 같은 빌드 에러 3회, 간헐 실패나 시나리오 수정 2회를 넘기면 사람에게 넘긴다.
+triage 의 확신이 낮을 때도 사람에게 넘긴다.
 
 ### LLM, 파이썬, 셸의 역할
 
