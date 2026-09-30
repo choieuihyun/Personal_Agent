@@ -106,12 +106,18 @@ fi
 
 # 4. 실행 상태는 커밋하지 않는다
 GI="$TARGET/.gitignore"
-if [ -f "$GI" ] && grep -q '^\.claude/state/' "$GI" 2>/dev/null; then
-  say ".gitignore  이미 .claude/state/ 있음"
-else
-  say ".gitignore  .claude/state/ 추가"
-  [ "$DRY" = "0" ] && printf '\n# 하네스 실행 상태\n.claude/state/\n' >> "$GI"
-fi
+# 실행 상태와, 하네스 파이썬 스크립트가 돌면서 남기는 바이트코드 캐시. 둘 다 커밋할 것이 아니다.
+# 캐시를 빼 두지 않으면 대상 프로젝트 git 에 __pycache__ 가 뜬다.
+# 마지막 줄에 개행이 없으면 붙여 쓴 패턴이 앞 줄과 합쳐진다
+[ "$DRY" = "0" ] && [ -s "$GI" ] && [ -n "$(tail -c1 "$GI")" ] && echo >> "$GI"
+for pat in '.claude/state/' '.claude/**/__pycache__/'; do
+  if [ -f "$GI" ] && grep -qxF "$pat" "$GI" 2>/dev/null; then
+    say ".gitignore  이미 $pat 있음"
+  else
+    say ".gitignore  $pat 추가"
+    [ "$DRY" = "0" ] && printf '%s\n' "$pat" >> "$GI"
+  fi
+done
 
 [ "$DRY" = "1" ] && { echo; echo "dry-run 이므로 아무것도 쓰지 않았다."; exit 0; }
 

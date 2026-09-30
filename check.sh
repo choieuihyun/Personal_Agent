@@ -141,6 +141,7 @@ chk "설명서와 실제 tools 불일치" 0 "$(for f in core/setup/*.md; do n=$(
 # 설치, 외부 도구 연결, 재설치. 재설치가 연결을 지우거나 연결 때문에 멈추면 /setup 결과가 한 번 쓰고 사라진다.
 I="$PROBE/inst"; mkdir -p "$I"; printf '{}' > "$I/package.json"
 bash install.sh "$I" >/dev/null 2>&1
+chk "설치: 실행 상태와 바이트코드 캐시를 git 에서 뺀다" 2 "$(grep -cxE '\.claude/state/|\.claude/\*\*/__pycache__/' "$I/.gitignore")"
 chk "설치: 설명서와 템플릿 복사" "13 ok" "$(ls "$I/.claude/setup" 2>/dev/null | wc -l | tr -d ' ') $([ -f "$I/.claude/templates/choices.md" ] && [ -f "$I/.claude/templates/DOMAIN.md.tmpl" ] && echo ok)"
 python3 - "$I/.claude/project.json" <<'PYX'
 import json,sys
