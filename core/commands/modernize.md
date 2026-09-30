@@ -84,6 +84,29 @@ echo "[/modernize] SESSION_DIR=${SESSION_DIR}"
 
 ---
 
+## 에이전트 결과 저장
+
+explorer, builder, verifier 는 결과 파일을 직접 쓰지 않는다. 소스를 못 고치게 도구에서 쓰기 권한을 뺐기 때문이다.
+대신 최종 메시지 끝에 json 블록 하나로 결과를 반환한다. 저장은 오케스트레이터가 한다.
+
+에이전트가 끝나면 최종 메시지 원문을 그대로 넘긴다:
+
+```bash
+python3 .claude/scripts/save_result.py "${SESSION_DIR}/<파일>" <필수 키> <<'AGENT_RESULT'
+<에이전트 최종 메시지 원문>
+AGENT_RESULT
+```
+
+| 에이전트 | 파일 | 필수 키 |
+|---|---|---|
+| explorer | `explorer-proposal.json` | `step_id,proposed_allowed_to_modify,risk_flags,risk_level` |
+| builder | `builder.json` | `step_id,build_success,error_hash,error_files,error_confidence` |
+| verifier | `verifier.json` | `step_id,verification_passed,findings,summary` |
+
+exit 1 (json 없음, 깨짐, 필수 키 누락) 이면 저장하지 않는다. 같은 에이전트를 한 번 재호출하며
+"결과를 최종 메시지 끝의 json 블록으로 반환하라" 고 다시 요구한다. 두 번째도 실패하면 Human Gate 다.
+json 을 손으로 고쳐 저장하지 않는다. 뒤 단계가 이 필드로 분기하므로 추측한 값은 엉뚱한 분기를 만든다.
+
 ## 1단계: 탐색 + 리서치 (EXPLORING)
 
 orchestrator.json status를 "EXPLORING"으로 업데이트한다.
@@ -109,7 +132,7 @@ researcher에게 전달:
 
 ### Orchestrator 판단
 
-`${SESSION_DIR}/explorer-proposal.json` 을 읽어서:
+explorer 의 반환을 「에이전트 결과 저장」대로 `${SESSION_DIR}/explorer-proposal.json` 에 저장하고 읽어서:
 1. forbidden_rules 필터링 적용
 2. risk_level HIGH → Human Gate
 3. orchestrator.json 업데이트
@@ -197,7 +220,7 @@ builder에게 추가 전달 정보 없음 (session_dir만 있으면 충분).
 
 ### Orchestrator 판단
 
-`${SESSION_DIR}/verifier.json` 과 `${SESSION_DIR}/builder.json` 을 모두 읽어서 판단한다:
+두 반환을 「에이전트 결과 저장」대로 `${SESSION_DIR}/verifier.json` 과 `${SESSION_DIR}/builder.json` 에 저장하고 모두 읽어서 판단한다:
 
 | verifier | builder | 판단 |
 |---|---|---|
@@ -287,6 +310,10 @@ python3 .claude/scripts/record_metric.py "${SESSION_DIR}" "$TAGS"
 ```
 session_dir: <SESSION_DIR>
 ```
+
+함께 넘긴다:
+  - `changed_files`: implementer.json 의 recent_patches 에 있는 target_files_sorted 합집합
+  - `domains`: 런타임 게이트에 넘긴 TAGS 와 같은 값 (domains_for.py 출력)
 
 추가 전달 정보:
 - 변경된 파일 목록

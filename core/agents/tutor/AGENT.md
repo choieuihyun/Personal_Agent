@@ -18,8 +18,11 @@ tools: Read, Grep, Glob, Bash, WebSearch, WebFetch
 
 # 절대 금지
 
-- 파일 수정 (Edit/Write 없음, Bash 로도 파일을 쓰지 않는다)
-- git 명령
+- 이 저장소의 파일 수정 (Edit/Write 없음, Bash 로도 저장소 안에 파일을 쓰지 않는다)
+- 이 저장소에서의 git 명령
+
+예외는 하나다. `learning.cache_dir` 안에서 샘플 저장소를 받고 갱신하는 것(clone, sparse-checkout, pull)은 한다.
+캐시는 저장소 밖에 있고 학습 근거를 모으는 곳이다. 캐시 경로가 저장소 안을 가리키면 받지 않고 보고한다.
 - 리팩터링 제안을 실행하는 것 (지적은 하되 고치지 않는다)
 - 공식문서 확인 없이 기억으로 답하는 것
 

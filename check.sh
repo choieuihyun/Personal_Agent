@@ -94,6 +94,14 @@ chk "웹 태그 판독 (import 경로 제외)" "auth,cart" "$(HARNESS_PROJECT_JS
 chk "웹 게이트 종료코드" 0 "$?"
 chk "웹 태그 여러 개는 정규식 | 로" 1 "$(grep -c '^--grep=@(auth|cart)' "$PROBE/npx.args" 2>/dev/null)"
 chk "웹 리포트가 파일로 남는다" "True 1" "$(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print(r.get('report_found'),r.get('flows_total'))" "$PROBE/web/s/runner.json" 2>/dev/null)"
+# 읽기 전용 에이전트는 json 을 반환만 한다. 저장기가 깨진 반환과 필수 키 누락을 막아야 한다.
+printf 'x\n```json\n{"step_id": 1, "build_success": true}\n```\n' | python3 core/scripts/save_result.py "$PROBE/b.json" step_id,build_success >/dev/null
+chk "결과 저장: 정상 반환" 0 "$?"
+printf '```json\n{"step_id": 1}\n```\n' | python3 core/scripts/save_result.py "$PROBE/c.json" step_id,build_success >/dev/null
+chk "결과 저장: 필수 키 누락은 거부" 1 "$?"
+chk "결과 저장: 거부하면 파일을 안 남긴다" "no" "$([ -e "$PROBE/c.json" ] && echo yes || echo no)"
+# 도구에 쓰기 권한이 없는 에이전트가 결과를 파일로 쓰라는 지시를 받으면 권한과 지시가 모순된다
+chk "쓰기 권한 없는 에이전트의 파일 저장 지시" 0 "$(for a in explorer builder verifier; do grep -lE 'Write 도구로 저장|json. 에 저장|\.json` 에 (성공 )?기록|json` 업데이트' core/agents/$a/AGENT.md; done 2>/dev/null | wc -l | tr -d ' ')"
 echo "[7] 셸/파이썬 문법"
 for f in core/scripts/*.sh tools/*/*.sh ./*.sh; do bash -n "$f" 2>/dev/null || { echo "  FAIL $f"; fail=1; }; done
 # 셸에서 $VAR 뒤에 한글이 바로 붙으면 변수명의 일부로 파싱된다 ($n개 -> n개).

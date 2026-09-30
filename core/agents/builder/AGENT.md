@@ -90,14 +90,18 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 1. `<session_dir>/orchestrator.json` 읽어서 현재 step_id 확인
 2. 빌드 실행
-3. 성공 시 → `<session_dir>/builder.json` 에 성공 기록
+3. 성공 시 → 성공 형식의 json 을 만든다
 4. 실패 시 → 에러 로그 분석
    - 에러 파일 추출
    - 신뢰도 판단
-   - 이전 builder.json의 error_hash와 비교
-5. `<session_dir>/builder.json` 업데이트
+   - 이전 builder.json의 error_hash와 비교 (읽기만 한다)
+5. json 을 최종 메시지 맨 끝에 붙여 반환한다
 
 # 출력 형식 (builder.json)
+
+결과는 파일로 쓰지 않는다. 도구에 쓰기 권한이 없는 것은 의도다 (소스 수정을 물리적으로 막는다).
+최종 메시지 **맨 끝에** 아래 형식의 ```json 블록 하나로 반환한다. 오케스트레이터가 `<session_dir>/builder.json` 로 저장한다.
+블록이 없거나 필드가 빠지면 저장이 거부되고 재호출된다.
 
 ```json
 {
@@ -128,7 +132,7 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 # 보고
 
-builder.json 저장 후 결과를 텍스트로 요약하여 보고한다:
+json 블록 앞에 결과를 텍스트로 요약한다:
 
 - 빌드 성공/실패 여부
 - 실패 시: 에러 요약, 신뢰도, 에러 파일 목록

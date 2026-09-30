@@ -57,9 +57,8 @@ risk_flags 를 보고 적용할 규칙을 선택한다. 축 이름은 explorer �
 
 화면이나 모듈을 새로 만들거나 구조를 수정하면 그 프로젝트의 완료 기준을 모두 충족하도록 작성한다.
 
-- 기계로 확정되는 항목은 project.json 의 `dod_checks` 에 있다.
-  수정을 마치기 전에 스스로 확인한다: `python3 .claude/scripts/dod_check.py <바꾼 파일들>`
-  verifier 가 잡기 전에 여기서 잡는 편이 루프를 한 바퀴 아낀다
+- 기계로 확정되는 항목은 project.json 의 `dod_checks` 에 있다. 규칙을 읽고 그대로 지켜 쓴다.
+  실행 확인은 verifier 가 dod_check.py 로 한다 (이 에이전트에는 Bash 가 없다)
 - 나머지는 `docs.conventions` 의 완료 기준 절을 따른다
 - UI 자동화 식별자(`ui_test_id`)를 인터랙티브 요소에 의미 기반 snake_case 로 부여한다.
   식별자 부여는 동작 중립이므로 1:1 보존 원칙의 예외이며 원본에 없어도 추가한다

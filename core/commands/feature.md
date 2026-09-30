@@ -81,6 +81,29 @@ forbidden_rules 주의: fix/modernize 와 달리 project.json 의 `risk_globs`(�
 
 ---
 
+## 에이전트 결과 저장
+
+explorer, builder, verifier 는 결과 파일을 직접 쓰지 않는다. 소스를 못 고치게 도구에서 쓰기 권한을 뺐기 때문이다.
+대신 최종 메시지 끝에 json 블록 하나로 결과를 반환한다. 저장은 오케스트레이터가 한다.
+
+에이전트가 끝나면 최종 메시지 원문을 그대로 넘긴다:
+
+```bash
+python3 .claude/scripts/save_result.py "${SESSION_DIR}/<파일>" <필수 키> <<'AGENT_RESULT'
+<에이전트 최종 메시지 원문>
+AGENT_RESULT
+```
+
+| 에이전트 | 파일 | 필수 키 |
+|---|---|---|
+| explorer | `explorer-proposal.json` | `step_id,proposed_allowed_to_modify,risk_flags,risk_level` |
+| builder | `builder.json` | `step_id,build_success,error_hash,error_files,error_confidence` |
+| verifier | `verifier.json` | `step_id,verification_passed,findings,summary` |
+
+exit 1 (json 없음, 깨짐, 필수 키 누락) 이면 저장하지 않는다. 같은 에이전트를 한 번 재호출하며
+"결과를 최종 메시지 끝의 json 블록으로 반환하라" 고 다시 요구한다. 두 번째도 실패하면 Human Gate 다.
+json 을 손으로 고쳐 저장하지 않는다. 뒤 단계가 이 필드로 분기하므로 추측한 값은 엉뚱한 분기를 만든다.
+
 ## 0단계: 기획 토론 (DISCUSS)
 
 orchestrator.json status 를 "DISCUSS" 로 업데이트한다.
@@ -201,7 +224,7 @@ orchestrator.json status 를 "EXPLORING" 으로 업데이트한다.
 **explorer 에이전트를 호출한다** (프롬프트 상단에 session_dir 명시).
 전달 정보: plan.json 의 modify_hint 와 reuse_patterns (신규 파일은 planner 가 이미 정함. explorer 는 수정할 기존 파일만 확정).
 
-완료 후 `${SESSION_DIR}/explorer-proposal.json` 을 읽는다.
+완료 후 반환을 「에이전트 결과 저장」대로 `${SESSION_DIR}/explorer-proposal.json` 에 저장하고 읽는다.
 
 ### Orchestrator 판단
 
@@ -263,7 +286,7 @@ verifier 에게 전달 (신규 기능 모드 명시):
 
 builder 에게 추가 전달 정보 없음 (session_dir 만으로 충분).
 
-두 에이전트 완료까지 기다린 뒤 verifier.json 과 builder.json 을 읽어 판단한다:
+두 에이전트 완료까지 기다린 뒤 각 반환을 「에이전트 결과 저장」대로 verifier.json 과 builder.json 에 저장하고 읽어 판단한다:
 
 | verifier | builder | 판단 |
 |---|---|---|
@@ -393,7 +416,8 @@ orchestrator.json status 를 "DOCUMENTING" 으로 업데이트한다.
 
 **documenter 에이전트를 호출한다** (프롬프트 상단에 session_dir 명시).
 전달 정보:
-- 변경/생성 파일 목록
+- 변경/생성 파일 목록 (`changed_files`)
+- 도메인 (`domains`: 게이트에 넘긴 TAGS 와 같은 값)
 - 신규 기능 요약 (spec.json goal)
 - 문서 모드: 해당 도메인 DOMAIN.md 가 있으면 update, 없으면 _TEMPLATE.md 에서 신규 생성(create)
 

@@ -23,7 +23,7 @@ thinking: true
   누락 시 MISSING_TEST_ID(MEDIUM) finding 을 기록한다. 이 식별자가 런타임 게이트의 셀렉터 근거다.
 - 신규 화면이 없는 비-UI 기능이면 DoD 대상이 없으므로 verification_passed true 로 통과 처리한다.
 
-판정은 동일하다: MEDIUM 이 0개면 verification_passed true, 1개 이상이면 false.
+판정은 동일하다: MEDIUM 이상(HIGH 포함)이 0개면 verification_passed true, 1개 이상이면 false.
 아래 마이그레이션 검증 항목들은 신규 기능 모드가 아닐 때만 적용된다.
 
 # 절대 금지
@@ -118,7 +118,7 @@ else
   TODAY=$(date +%Y-%m-%d)
   grep -q "최종 수정: ${TODAY}" "$REPO/$REL" || echo "PROGRESS_DOC_STALE_DATE: 최종 수정일이 오늘이 아님"
   grep -q "^| <도메인> " "$REPO/$REL" || echo "PROGRESS_DOC_MISSING_ROW: 해당 도메인 진척 행 없음"
-fi"
+fi
 ```
 
 - 출력이 있으면 PROGRESS_DOC(LOW) finding 으로 기록하고, documenter 가 갱신해야 함을 보고에 명시한다.
@@ -142,10 +142,14 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 2. 원본(레거시) 파일 읽기
 3. 신규 파일 읽기
 4. 5개 검증 항목 순서대로 실행
-5. 결과를 `<session_dir>/verifier.json` 에 저장
-6. 요약 보고
+5. 요약을 텍스트로 쓴다
+6. 맨 끝에 verifier.json 형식의 json 블록을 붙여 반환한다
 
 # 출력 형식 (verifier.json)
+
+결과는 파일로 쓰지 않는다. 도구에 쓰기 권한이 없는 것은 의도다 (소스 수정을 물리적으로 막는다).
+최종 메시지 **맨 끝에** 아래 형식의 ```json 블록 하나로 반환한다. 오케스트레이터가 `<session_dir>/verifier.json` 로 저장한다.
+블록이 없거나 필드가 빠지면 저장이 거부되고 재호출된다.
 
 ```json
 {
@@ -204,12 +208,15 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 # 판정 기준
 
-- MEDIUM severity가 0개 → `verification_passed: true`
-- MEDIUM severity가 1개 이상 → `verification_passed: false`
+- HIGH 와 MEDIUM 을 합쳐 0개 → `verification_passed: true`
+- HIGH 또는 MEDIUM 이 1개 이상 → `verification_passed: false`
+- LOW 만 있으면 통과다. LOW 는 보고에만 남긴다
+
+HIGH 를 빼고 MEDIUM 만 세면 크래시를 부르는 결함이 있을 때 오히려 통과한다. "MEDIUM 이상" 으로 읽는다.
 
 # 보고
 
-verifier.json 저장 후 결과를 텍스트로 요약하여 보고한다:
+json 블록 앞에 결과를 텍스트로 요약한다:
 
 - 검증 통과/실패 여부
 - HIGH severity 항목 상세

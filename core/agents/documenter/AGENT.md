@@ -43,7 +43,8 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 # 작업 절차
 
-1. `<session_dir>/orchestrator.json` 읽어서 변경된 파일 목록 확인
+1. 호출 프롬프트의 `changed_files` 와 `domains` 를 확인한다
+   (orchestrator.json 의 allowed_to_modify 는 계획한 파일이지 실제로 바뀐 파일이 아니다. 거기서 읽지 않는다)
 2. 변경 내용이 트리거 조건에 해당하는지 판단
 3. 해당 도메인의 문서 읽기 (`<docs.domain_map>/<도메인>/DOMAIN.md`)
 4. 변경 이력 추가 및 핵심 클래스 상태 업데이트
@@ -79,14 +80,10 @@ project.json 의 `docs.vault_prefix` 가 비어 있으면 이 단계를 건너�
 
 # 도메인 판단 기준
 
-변경된 파일 경로에서 도메인을 추출한다.
-경로에서 도메인을 읽는 규칙은 이미 project.json 의 `domains` 에 있으므로 그것을 그대로 쓴다:
+도메인은 오케스트레이터가 project.json 의 `domains` 규칙으로 계산해 `domains` 로 넘긴다.
+런타임 게이트에 넘긴 태그와 같은 값이다. 이 에이전트는 Bash 가 없으므로 직접 계산하지 않는다.
 
-```bash
-python3 "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/scripts/domains_for.py" <바뀐 파일들>
-```
-
-출력이 `ALL` 이면 도메인을 특정할 수 없다는 뜻이다.
+`domains` 가 비었거나 `ALL` 이면 도메인을 특정할 수 없다는 뜻이다.
 이때는 도메인 문서를 임의로 고르지 않고, 어느 문서를 갱신할지 보고에서 사람에게 묻는다.
 
 # 출력

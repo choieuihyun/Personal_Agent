@@ -60,7 +60,9 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 # 출력 형식
 
-분석 완료 후 반드시 아래 JSON 형식으로 `<session_dir>/explorer-proposal.json` 을 Write 도구로 저장한다.
+결과는 파일로 쓰지 않는다. 도구에 쓰기 권한이 없는 것은 의도다 (소스 수정을 물리적으로 막는다).
+최종 메시지 **맨 끝에** 아래 형식의 ```json 블록 하나로 반환한다. 오케스트레이터가 `<session_dir>/explorer-proposal.json` 로 저장한다.
+블록이 없거나 필드가 빠지면 저장이 거부되고 재호출된다.
 
 ```json
 {
@@ -83,5 +85,5 @@ proposed_allowed_to_modify는 실제 수정이 필요하다고 판단한 파일�
 2. 관련 클래스명/메서드명을 Grep으로 검색한다
 3. 검색된 파일 중 핵심 파일만 선택적으로 Read한다
 4. Risk 감지 기준을 적용한다
-5. `<session_dir>/explorer-proposal.json` 을 저장한다
-6. 분석 요약을 텍스트로 보고한다
+5. 분석 요약을 텍스트로 쓴다
+6. 맨 끝에 위 json 블록을 붙여 반환한다
