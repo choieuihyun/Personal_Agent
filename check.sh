@@ -134,6 +134,20 @@ cat > "$G/.claude/project.json" <<'JSON'
 JSON
 (cd "$G" && bash .claude/scripts/runtime_gate.sh .claude/state/sessions/t "" >/dev/null 2>&1)
 chk "최소 inline 어댑터로 게이트 완주" "0 1/1" "$? $(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print('%s/%s'%(r['flows_passed'],r['flows_total']))" "$G/.claude/state/sessions/t/runner.json" 2>/dev/null)"
+# 세팅 설명서는 사용자에게 그대로 읽어 주는 글이다. 하네스 내부 용어가 들어가면 알아듣기 어렵다.
+# 쉬운 말 대응표: templates/glossary.md. frontmatter 와 저장 위치 열(설정 키)은 검사에서 뺀다.
+JARGON='위험 축|허가 목록|Human Gate|목표역산|보충 칸|allowed_to_modify|오케스트레이터|런타임 게이트|수용조건|명세 동결|NO_FLOW|무의미 diff|DoD'
+chk "세팅 설명서 속 하네스 용어" 0 "$(for f in core/setup/*.md; do python3 - "$f" <<'PYJ'
+import re,sys
+s=open(sys.argv[1],encoding="utf-8").read(); s=re.sub(r"^---\n.*?\n---\n","",s,flags=re.S)
+out=[]
+for l in s.split("\n"):
+    if re.match(r"^\| \d+ \|",l):
+        c=[x.strip() for x in l.strip().strip("|").split("|")]; c[3]=""; l=" ".join(c)
+    out.append(l)
+print("\n".join(out))
+PYJ
+done | grep -oE "$JARGON" | wc -l | tr -d ' ')"
 # 세팅 설명서는 에이전트마다 하나다. /setup 은 이것으로 에이전트를 소개하고 묻는다.
 # 설명서가 적은 도구와 실제 tools 가 다르면 사용자에게 틀린 소개를 하게 된다.
 chk "세팅 설명서 없는 에이전트" 0 "$(for d in core/agents/*/; do n=$(basename "$d"); [ -f "core/setup/$n.md" ] || echo "$n"; done | wc -l | tr -d ' ')"

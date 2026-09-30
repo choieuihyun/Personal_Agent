@@ -7,6 +7,7 @@
 | `project.json.tmpl` | 도메인 목록, 명령 빈칸, 금지 글롭 등 프로젝트마다 채우는 값 |
 | `CLAUDE.md.tmpl` | 대상 프로젝트 CLAUDE.md 끝에 `/setup` 이 덧붙이는 하네스 안내 절 |
 | `DOMAIN.md.tmpl` | 도메인 문서 뼈대. `/setup` 이 대화로 채우고 documenter 가 갱신한다 |
+| `glossary.md` | 쉬운 말 대응표와 말투 규칙. `/setup` 이 사용자와 대화할 때, 세팅 설명서를 쓸 때 기준이다 |
 | `choices.md` | 세팅할 때 사용자에게 보여 줄 선택지 (프로젝트 유형, 테스트 도구, 아키텍처, 공유 상태 경로 등). core 에서 걷어 낸 스택 전용 규칙도 여기 있다 |
 
 이 폴더는 설치할 때 대상의 `.claude/templates/` 로 통째로 복사되고 `/setup` 이 읽는다.
