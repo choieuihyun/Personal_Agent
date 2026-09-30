@@ -12,7 +12,8 @@
 #   .claude/.harness-manifest             설치된 하네스 버전
 #
 # 왜 LLM 이 아니라 스크립트로 그리나: 보여 주는 값이 실제 파일과 한 글자도 달라서는 안 된다.
-# 파일 밖으로 아무것도 보내지 않는다. 결과는 .claude/state/harness-view.html 이다 (커밋 대상 아님).
+# 설정 내용은 파일 밖으로 보내지 않는다. 글꼴만 Google Fonts 에서 받는다 (오프라인이면 시스템 글꼴).
+# 결과는 .claude/state/harness-view.html 이다 (커밋 대상 아님).
 #
 # 사용법: harness_view.py [--open] [project_dir]
 
@@ -35,6 +36,20 @@ PIPELINES = [
                             "implementer", "verifier", "builder", "@gate", "triage", "documenter"]),
     ("/study", "학습", ["tutor"]),
 ]
+# 에이전트마다 무엇을 받아 무엇을 내놓는지. 카드에 한 줄로 보여 준다 (파일 이름은 커맨드 문서의 계약이다).
+IO = {
+    "explorer": ("작업 설명, 에러", "explorer-proposal.json"),
+    "implementer": ("allowed_to_modify", "소스 수정, implementer.json"),
+    "builder": ("adapter.build", "builder.json"),
+    "triage": ("runner.json", "triage.json"),
+    "documenter": ("changed_files, domains", "DOMAIN.md"),
+    "discuss": ("기능 요청", "discuss.json"),
+    "spec": ("discuss.json", "spec.json"),
+    "planner": ("spec.json", "plan.json"),
+    "plan-checker": ("spec.json, plan.json", "plan-check.json"),
+    "verifier": ("spec.json, plan.json, 변경 파일", "verifier.json"),
+    "tutor": ("주제, learning.*", "학습 노트"),
+}
 STEPS = {"@gate": ("런타임 게이트", "셸이 올리기, 시나리오 재생, 내리기를 하고 JUnit 결과로 판정한다. LLM 미개입"),
          "@approve": ("사람 승인", "명세와 설계를 보고 사용자가 승인해야 구현이 시작된다")}
 
@@ -165,8 +180,12 @@ def collect(root):
         title = re.search(r"^# (.+)$", gbody, re.M)
         qs = questions(gbody, cfg, ad, root, name, domains_filled, extra)
         sup = read(os.path.join(dest, "project", "agents", name + ".md"))
+        desc = fm.get("description", "")
+        parts = [x.strip() for x in desc.split(". ") if x.strip()]
         agents[name] = {
             "title": title.group(1) if title else name,
+            "desc": (". ".join(parts[1:]) if len(parts) > 1 else desc).rstrip("."),
+            "io": IO.get(name, ("", "")),
             "what": section(gbody, "무엇을 하나"),
             "cannot": section(gbody, "못 하는 것"),
             "gives": section(gbody, "넘겨주는 것"),
@@ -199,108 +218,113 @@ def collect(root):
 PAGE = r"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>하네스 세팅: __PROJECT__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f6f5f2;--surface:#ffffff;--ink:#2b2a28;--muted:#77756f;--rule:#e4e1da;
-  --ok:#5f7f63;--warn:#a07a3c;--empty:#b3b0a8;--sel:#4f6d86;
-  --g-judge:#ece7dd;--g-judge-ink:#7d6d52;
-  --g-act:#e2e8e1;--g-act-ink:#58715c;
-  --g-check:#e0e5ea;--g-check-ink:#566b7e;
-  --g-record:#ece3e1;--g-record-ink:#85625f;
-  --note:#f1ece2;--note-ink:#7a6440;
+  --bg:#0b0b0b;--panel:#141212;--panel2:#1a1717;--line:#262222;--line2:#332d2d;
+  --ink:#f2eeee;--text:#a39a9a;--dim:#6f6767;
+  --red:#b8323a;--red-soft:#3a1618;
+  --ok:#ddd6d6;--part:#c24a4f;--none:#4b4444;
 }
-@media (prefers-color-scheme:dark){:root{
-  --bg:#1a1a19;--surface:#222220;--ink:#e9e7e2;--muted:#9c9a93;--rule:#34332f;
-  --ok:#8fae92;--warn:#c9a567;--empty:#6b6963;--sel:#9db6cc;
-  --g-judge:#2c2923;--g-judge-ink:#c9b894;
-  --g-act:#232a24;--g-act-ink:#9dbba1;
-  --g-check:#232830;--g-check-ink:#9fb4c8;
-  --g-record:#2d2524;--g-record-ink:#c9a4a0;
-  --note:#2b2720;--note-ink:#cfb488;
-}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
-main{max-width:1160px;margin:0 auto;padding:32px 16px 72px}
-h1{font-size:22px;font-weight:650;margin:0 0 4px;letter-spacing:-.01em}
-h2{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin:40px 0 12px}
-.sub{color:var(--muted)}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--text);font:14px/1.6 "Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:1200px;margin:0 auto;padding:40px 20px 96px}
 code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--panel);color:var(--text);border-radius:999px;padding:5px 14px;font-size:13px}
+.rdot{width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;flex:none}
+.red{color:var(--red)}
+h1{color:var(--ink);font-size:clamp(34px,5.4vw,60px);line-height:1.02;font-weight:700;letter-spacing:-.02em;text-transform:uppercase;margin:22px 0 14px}
+.lead{max-width:680px;font-size:15px}
+h2{font-size:clamp(22px,2.6vw,32px);line-height:1.2;font-weight:500;letter-spacing:-.01em;margin:72px 0 22px;color:var(--ink)}
+h2 .d{color:var(--dim)}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
 
 /* 요약 */
-.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));background:var(--surface);border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-top:20px}
-.fact{padding:12px 14px;box-shadow:inset -1px 0 var(--rule),inset 0 -1px var(--rule)}
-.fact b{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-bottom:2px}
-.fact span{word-break:break-all}
-.note{margin-top:10px;padding:10px 14px;border-radius:8px;background:var(--note);color:var(--note-ink)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:36px}
+.fact{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.fact b{display:block;font-size:11px;font-weight:500;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.fact span{color:var(--ink);word-break:break-word}
+.fact code{color:var(--ink)}
+.notes{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px;color:var(--text)}
+.note .rdot{margin-top:8px}
 
 /* 에이전트 카드 */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;perspective:1000px}
-.card{position:relative;aspect-ratio:4/5;border-radius:12px;border:1px solid var(--rule);padding:14px;cursor:pointer;
-  display:flex;flex-direction:column;will-change:transform;transform-style:preserve-3d;outline:none}
-.card:focus-visible{box-shadow:0 0 0 2px var(--sel)}
-.card .name{font-weight:600;font-size:15px}
-.card .stat{position:absolute;top:14px;right:14px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
-.card .icon{flex:1;display:flex;align-items:center;justify-content:center}
-.card .icon svg{width:44%;height:auto;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
-.card .role{font-size:12px;color:var(--muted);min-height:2.8em;line-height:1.4}
-.g-judge{background:var(--g-judge);color:var(--g-judge-ink)}
-.g-act{background:var(--g-act);color:var(--g-act-ink)}
-.g-check{background:var(--g-check);color:var(--g-check-ink)}
-.g-record{background:var(--g-record);color:var(--g-record-ink)}
-.card .name,.card .role{color:var(--ink)}
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%}
-.d-ok{background:var(--ok)}.d-part{background:var(--warn)}.d-none{background:var(--empty)}
-.legend{font-size:12px;color:var(--muted);margin:-4px 0 12px;display:flex;flex-wrap:wrap;gap:14px}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid var(--rule)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;perspective:1100px}
+.card{position:relative;aspect-ratio:4/5;border-radius:18px;border:1px solid var(--line);background:var(--panel);padding:18px;cursor:pointer;
+  display:flex;flex-direction:column;will-change:transform;transform-style:preserve-3d;outline:none;transition:border-color .2s}
+.card:hover,.card:focus-visible{border-color:var(--line2)}
+.card:focus-visible{box-shadow:0 0 0 2px var(--red)}
+.card .name{color:var(--ink);font-weight:600;font-size:17px;letter-spacing:-.01em}
+.card .grp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-top:2px}
+.card .stat{position:absolute;top:20px;right:18px;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.card .icon{flex:1;display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.card .icon svg{width:40%;height:auto;fill:none;stroke:currentColor;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round;opacity:.92}
+.card .rule{width:44px;height:1px;background:var(--line2);margin:0 0 10px}
+.card .io{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--text);margin-bottom:6px;word-break:break-word}
+.card .io .red{padding:0 3px}
+.card .desc{font-size:12px;line-height:1.5;color:var(--dim)}
+.st{display:inline-block;width:7px;height:7px;border-radius:50%}
+.s-ok{background:var(--ok)}.s-part{background:var(--part)}.s-none{background:transparent;border:1px solid var(--none)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 18px}
+.legend .pill{font-size:12px;padding:4px 12px}
 
 /* 파이프라인 */
-.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 14px}
-.flow .cmd{font-weight:600;margin-right:6px;min-width:70px}
-.chip{border:1px solid var(--rule);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
-.chip.step{cursor:default;color:var(--muted);border-style:dashed}
-.arrow{color:var(--empty);font-size:12px}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:0;margin:0 0 18px}
+.flow .cmd{color:var(--ink);font-weight:600;width:100%;margin-bottom:10px;font-size:15px}
+.flow .cmd span{color:var(--dim);font-weight:400;margin-left:8px;font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;margin:4px 0}
+.chip:hover{border-color:var(--dim)}
+.chip.step{cursor:default;color:var(--text);background:var(--red-soft);border-color:#5a2226}
+.dash{width:26px;height:0;border-top:1px dashed var(--red);opacity:.8;margin:0 4px}
 
 /* 표 */
-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+.tw{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:none}
-th{color:var(--muted);font-weight:500;font-size:12px}
-.st-ok{color:var(--ok);white-space:nowrap}.st-no{color:var(--warn);white-space:nowrap}
-.sec{display:inline-flex;align-items:center;gap:5px;margin:2px 10px 2px 0;font-size:12px}
-.hint{font-size:12px;color:var(--muted);margin-top:8px}
+th{color:var(--dim);font-weight:500;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+td b{color:var(--ink);font-weight:600}
+td code{color:var(--ink)}
+.ok{color:var(--ok);white-space:nowrap}.no{color:var(--part);white-space:nowrap}
+.sec{display:inline-flex;align-items:center;gap:6px;margin:2px 12px 2px 0;font-size:12px}
+.hint{font-size:12px;color:var(--dim);margin-top:10px}
 
 /* 상세 */
-dialog{border:1px solid var(--rule);border-radius:14px;padding:0;background:var(--surface);color:var(--ink);width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px)}
-dialog::backdrop{background:rgba(20,20,18,.35)}
-.dhead{display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid var(--rule)}
-.dhead .ic{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
-.dhead .ic svg{width:28px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.dhead h3{margin:0;font-size:17px}.dhead .sub{font-size:13px}
-.dhead button{margin-left:auto;border:1px solid var(--rule);background:transparent;color:var(--ink);border-radius:8px;padding:4px 10px;cursor:pointer}
-.dbody{padding:4px 20px 20px;overflow:auto}
-.dbody h4{margin:18px 0 6px;font-size:12px;color:var(--muted);font-weight:500}
+dialog{border:1px solid var(--line2);border-radius:20px;padding:0;background:var(--panel);color:var(--text);
+  width:min(820px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:hidden}
+dialog[open]{display:flex;flex-direction:column}
+dialog::backdrop{background:rgba(0,0,0,.72)}
+.dhead{display:flex;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid var(--line);flex:none}
+.dhead .ic{width:64px;height:36px;border-radius:999px;background:var(--red-soft);border:1px solid #5a2226;color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none}
+.dhead .ic svg{width:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.dhead h3{margin:0;color:var(--ink);font-size:20px;font-weight:600}
+.dhead .sub{font-size:13px;color:var(--dim)}
+.dhead button{margin-left:auto;border:1px solid var(--line2);background:transparent;color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit;font-size:13px}
+.dbody{padding:6px 24px 26px;overflow:auto;overscroll-behavior:contain;flex:1}
+.dbody h4{margin:22px 0 8px;font-size:11px;color:var(--dim);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
 .dbody p{margin:0;white-space:pre-wrap}
-.tag{display:inline-block;border:1px solid var(--rule);border-radius:5px;padding:1px 7px;margin:2px 4px 2px 0;font-size:12px}
-.tag.mcp{border-color:var(--sel);color:var(--sel)}
-pre{white-space:pre-wrap;margin:0;font-size:12px;background:var(--bg);padding:10px;border-radius:8px;border:1px solid var(--rule)}
+.tag{display:inline-block;border:1px solid var(--line2);border-radius:999px;padding:2px 10px;margin:2px 6px 2px 0;font-size:12px;color:var(--ink)}
+.tag.mcp{border-color:var(--red);color:#e7b3b6}
+pre{white-space:pre-wrap;margin:0;font-size:12px;background:var(--bg);color:var(--text);padding:12px;border-radius:12px;border:1px solid var(--line)}
 @media (prefers-reduced-motion:reduce){.card{transition:none}}
 </style></head><body><main>
-<h1>하네스 세팅: __PROJECT__</h1>
-<div class="sub">보기 전용 화면이다. 바꾸려면 <code>/setup</code>, 다시 그리려면 <code>/harness-view</code>.</div>
+<span class="pill"><span class="rdot"></span>Harness View</span>
+<h1>__PROJECT__<br>하네스 세팅<span class="red">.</span></h1>
+<div class="lead">이 프로젝트에 하네스가 어떻게 세팅돼 있는지 보여 준다. 보기 전용이다. 바꾸려면 <code>/setup</code>, 다시 그리려면 <code>/harness-view</code>.</div>
 <div id="top"></div>
 
-<h2>에이전트</h2>
+<div class="head"><h2><span class="d">에이전트 <span id="n"></span>개.</span> 누르면 자세히 나온다<span class="red">.</span></h2></div>
 <div class="legend">
-  <span><i style="background:var(--g-judge)"></i>판단</span><span><i style="background:var(--g-act)"></i>실행</span>
-  <span><i style="background:var(--g-check)"></i>검증</span><span><i style="background:var(--g-record)"></i>기록과 학습</span>
-  <span><span class="dot d-ok"></span> 다 채움</span><span><span class="dot d-part"></span> 일부 빔</span><span><span class="dot d-none"></span> 안 채움</span>
-  <span>카드를 누르면 자세히 나온다</span>
+  <span class="pill"><span class="st s-ok"></span>다 채움</span><span class="pill"><span class="st s-part"></span>일부 빔</span><span class="pill"><span class="st s-none"></span>안 채움</span>
 </div>
 <div class="cards" id="cards"></div>
 
-<h2>파이프라인 순서</h2><div id="pipes"></div>
-<h2>도메인</h2><div id="domains"></div>
-<h2>비어 있는 설정</h2><div id="empties"></div>
+<h2><span class="d">파이프라인.</span> 이 순서로 일한다<span class="red">.</span></h2><div id="pipes"></div>
+<h2><span class="d">도메인.</span> 에이전트가 읽는 지식<span class="red">.</span></h2><div id="domains"></div>
+<h2><span class="d">빈칸.</span> 안 채우면 이렇게 된다<span class="red">.</span></h2><div id="empties"></div>
 </main>
 <dialog id="dlg"></dialog>
 <script>
@@ -310,6 +334,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 // 역할 묶음과 아이콘. 선 아이콘은 24 격자에 직접 그렸다 (외부 파일 없이 이 페이지 하나로 끝나게).
 const GROUP = {explorer:"judge",discuss:"judge",spec:"judge",planner:"judge","plan-checker":"judge",
   implementer:"act",builder:"act",verifier:"check",triage:"check",documenter:"record",tutor:"record"};
+const GROUP_NAME = {judge:"판단",act:"실행",check:"검증",record:"기록"};
 const ICON = {
   explorer:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/><circle cx="12" cy="12" r=".6"/>',
   implementer:'<path d="M14.7 6.3a4 4 0 0 0-5.3 5.1L4 16.8 7.2 20l5.4-5.4a4 4 0 0 0 5.1-5.3l-2.5 2.5-2.3-.6-.6-2.3z"/>',
@@ -325,24 +350,25 @@ const ICON = {
 };
 const svg = n => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]||'<circle cx="12" cy="12" r="8"/>'}</svg>`;
 function state(a){const q=a.questions; if(!q.length) return "ok"; const f=q.filter(x=>x.filled).length; return f===q.length?"ok":(f?"part":"none");}
-const short = t => (t.split(":").slice(1).join(":").trim() || t);
+const io = a => a.io && (a.io[0]||a.io[1]) ? `${esc(a.io[0])}<span class="red">→</span>${esc(a.io[1])}` : "";
 
 function renderTop(){
   let h=`<div class="facts">`;
   const f=(k,v)=>h+=`<div class="fact"><b>${k}</b><span>${v}</span></div>`;
-  f("화면", D.has_ui===null||D.has_ui===undefined?"<span class='st-no'>모름 (있는 것으로 본다)</span>":(D.has_ui?"있음":"없음"));
-  f("어댑터", D.adapter?esc(D.adapter):"<span class='st-no'>없음</span>");
+  f("화면 (has_ui)", D.has_ui===null||D.has_ui===undefined?"<span class='no'>모름 · 있는 것으로 본다</span>":(D.has_ui?"있음":"없음"));
+  f("어댑터", D.adapter?esc(D.adapter):"<span class='no'>없음</span>");
   f("런타임 게이트", D.runtime_gate===false?"꺼짐":"켜짐");
   f("빌드", `<code>${esc(D.build)||"-"}</code>`);
-  f("올리기 / 내리기", `<code>${esc(D.deploy)||"없음"}</code> / <code>${esc(D.teardown)||"없음"}</code>`);
-  f("시나리오", `<code>${esc(D.e2e_dir)||"-"}</code> · ${D.coverage.length?esc(D.coverage.join(", ")):"<span class='st-no'>덮는 도메인 모름</span>"}`);
+  f("올리기 / 내리기", `<code>${esc(D.deploy)||"없음"}</code><br><code>${esc(D.teardown)||"없음"}</code>`);
+  f("시나리오", `<code>${esc(D.e2e_dir)||"-"}</code><br>${D.coverage.length?esc(D.coverage.join(", ")):"<span class='no'>덮는 도메인 모름</span>"}`);
   f("도메인 규칙", esc(D.selfcheck)||"-");
-  f("하네스 버전", `${esc(D.commit)||"기록 없음"}<br><span class="sub">${esc(D.installed_at.replace("T"," ").slice(0,16))}</span>`);
-  h+=`</div>`;
-  if(!D.config_found) h+=`<div class="note">.claude/project.json 을 찾지 못했다. install.sh 로 설치한 뒤 /setup 을 부른다.</div>`;
-  if(D.update) h+=`<div class="note">${esc(D.update)}</div>`;
+  f("하네스 버전", `<code>${esc(D.commit)||"기록 없음"}</code><br><span style="color:var(--dim)">${esc(D.installed_at.replace("T"," ").slice(0,16))}</span>`);
+  h+=`</div><div class="notes">`;
+  if(!D.config_found) h+=`<div class="note"><span class="rdot"></span><div>.claude/project.json 을 찾지 못했다. install.sh 로 설치한 뒤 /setup 을 부른다.</div></div>`;
+  if(D.update) h+=`<div class="note"><span class="rdot"></span><div>${esc(D.update)}</div></div>`;
   const unc=D.known_domains.filter(d=>!D.coverage.includes(d));
-  if(D.coverage.length&&unc.length) h+=`<div class="note">시나리오가 없는 도메인: ${esc(unc.join(", "))}. 이 도메인만 고치면 런타임 검증이 없다.</div>`;
+  if(D.coverage.length&&unc.length) h+=`<div class="note"><span class="rdot"></span><div>시나리오가 없는 도메인: ${esc(unc.join(", "))}. 이 도메인만 고치면 런타임 검증이 없다.</div></div>`;
+  h+=`</div>`;
   document.getElementById("top").innerHTML=h;
 }
 
@@ -350,13 +376,14 @@ function order(){ const seen=[]; for(const [,,seq] of D.pipelines) for(const n o
   for(const n of Object.keys(D.agents)) if(!seen.includes(n)) seen.push(n); return seen.filter(n=>D.agents[n]); }
 
 function renderCards(){
+  const names=order(); document.getElementById("n").textContent=names.length;
   const el=document.getElementById("cards");
-  el.innerHTML=order().map(n=>{const a=D.agents[n]; const f=a.questions.filter(x=>x.filled).length;
-    return `<div class="card g-${GROUP[n]||"judge"}" data-a="${esc(n)}" tabindex="0" role="button" aria-label="${esc(n)} 자세히">
-      <div class="name">${esc(n)}</div>
-      <div class="stat"><span class="dot d-${state(a)}"></span>${f}/${a.questions.length}${a.mcp.length?" · MCP":""}${a.supplement?" · 보충":""}</div>
+  el.innerHTML=names.map(n=>{const a=D.agents[n]; const f=a.questions.filter(x=>x.filled).length;
+    return `<div class="card" data-a="${esc(n)}" tabindex="0" role="button" aria-label="${esc(n)} 자세히">
+      <div class="name">${esc(n)}</div><div class="grp">${GROUP_NAME[GROUP[n]]||""}</div>
+      <div class="stat"><span class="st s-${state(a)}"></span>${f}/${a.questions.length}${a.mcp.length?" · MCP":""}${a.supplement?" · 보충":""}</div>
       <div class="icon">${svg(n)}</div>
-      <div class="role">${esc(short(a.title))}</div></div>`;}).join("");
+      <div class="rule"></div><div class="io">${io(a)}</div><div class="desc">${esc(a.desc)}</div></div>`;}).join("");
   el.querySelectorAll(".card").forEach(c=>{ c.onclick=()=>show(c.dataset.a); c.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();show(c.dataset.a);}}; tilt(c); });
 }
 
@@ -377,40 +404,47 @@ function tilt(card){
 function renderPipes(){
   let h="";
   for(const [cmd,label,seq] of D.pipelines){
-    h+=`<div class="flow"><span class="cmd">${esc(cmd)} <span class="sub" style="font-weight:400">${esc(label)}</span></span>`;
-    seq.forEach((n,i)=>{ if(i) h+=`<span class="arrow">→</span>`;
-      if(n.startsWith("@")){const [t,d]=D.steps[n]; h+=`<span class="chip step" title="${esc(d)}">${esc(t)}</span>`;}
-      else h+=`<span class="chip" data-a="${esc(n)}"><span class="dot d-${D.agents[n]?state(D.agents[n]):"none"}"></span> ${esc(n)}</span>`; });
+    h+=`<div class="flow"><div class="cmd">${esc(cmd)}<span>${esc(label)}</span></div>`;
+    seq.forEach((n,i)=>{ if(i) h+=`<span class="dash"></span>`;
+      if(n.startsWith("@")){const [t,d]=D.steps[n]; h+=`<span class="chip step" title="${esc(d)}"><span class="rdot"></span>${esc(t)}</span>`;}
+      else h+=`<span class="chip" data-a="${esc(n)}"><span class="st s-${D.agents[n]?state(D.agents[n]):"none"}"></span>${esc(n)}</span>`; });
     h+=`</div>`;
   }
   const el=document.getElementById("pipes"); el.innerHTML=h;
   el.querySelectorAll(".chip[data-a]").forEach(c=>c.onclick=()=>show(c.dataset.a));
 }
 
+// 모달이 열려 있는 동안 뒤 페이지가 스크롤을 가져가지 않게 막는다. 닫히면(버튼, 바깥 클릭, Esc) 되돌린다.
+const dlg=document.getElementById("dlg");
+dlg.addEventListener("close",()=>{ document.documentElement.style.overflow=""; document.body.style.overflow=""; });
+dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
+
 function show(name){
   const a=D.agents[name]; if(!a) return;
-  let h=`<div class="dhead"><div class="ic g-${GROUP[name]||"judge"}">${svg(name)}</div><div><h3>${esc(name)}</h3><div class="sub">${esc(short(a.title))}</div></div><button onclick="document.getElementById('dlg').close()">닫기</button></div><div class="dbody">`;
+  let h=`<div class="dhead"><div class="ic">${svg(name)}</div><div><h3>${esc(name)}</h3><div class="sub">${esc(a.desc)}</div></div><button type="button" id="dclose">닫기</button></div><div class="dbody">`;
+  if(io(a)) h+=`<h4>입력과 출력</h4><div class="mono" style="color:var(--ink)">${io(a)}</div>`;
   if(a.what) h+=`<h4>무엇을 하나</h4><p>${esc(a.what)}</p>`;
   h+=`<h4>도구</h4>${a.tools.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}${a.mcp.map(t=>`<span class="tag mcp">${esc(t)}</span>`).join("")}`;
-  h+=`<div class="hint">붙인 MCP: ${a.mcp.length?"파란 태그":"없음"} · 권장: ${esc(a.mcp_hint)||"-"}</div>`;
+  h+=`<div class="hint">붙인 MCP: ${a.mcp.length?"빨간 테두리":"없음"} · 권장: ${esc(a.mcp_hint)||"-"}</div>`;
   if(a.cannot) h+=`<h4>못 하는 것</h4><p>${esc(a.cannot)}</p>`;
   if(a.gives) h+=`<h4>넘겨주는 것</h4><p>${esc(a.gives)}</p>`;
-  h+=`<h4>이 에이전트를 위한 설정</h4><table><tr><th>상태</th><th>무엇</th><th>현재 값 / 비면</th></tr>`;
-  for(const q of a.questions) h+=`<tr><td class="${q.filled?"st-ok":"st-no"}">${q.filled?"채움":"비어 있음"}</td><td>${esc(q.q)}<br><code>${esc(q.where)}</code></td><td>${q.filled?`<code>${esc(q.value)}</code>`:esc(q.ifempty)}</td></tr>`;
-  h+=`</table><h4>보충 칸 <code>.claude/project/agents/${esc(name)}.md</code></h4>`;
+  h+=`<h4>이 에이전트를 위한 설정</h4><div class="tw"><table><tr><th>상태</th><th>무엇</th><th>현재 값 / 비면</th></tr>`;
+  for(const q of a.questions) h+=`<tr><td class="${q.filled?"ok":"no"}">${q.filled?"채움":"비어 있음"}</td><td>${esc(q.q)}<br><code>${esc(q.where)}</code></td><td>${q.filled?`<code>${esc(q.value)}</code>`:esc(q.ifempty)}</td></tr>`;
+  h+=`</table></div><h4>보충 칸</h4><div class="mono" style="color:var(--dim);margin-bottom:8px">.claude/project/agents/${esc(name)}.md</div>`;
   h+=a.supplement?`<pre>${esc(a.supplement)}</pre>`:`<div class="hint">없음. /setup 에서 이 에이전트에게 따로 당부할 것을 적을 수 있다.</div>`;
   h+=`</div>`;
-  const dlg=document.getElementById("dlg"); dlg.innerHTML=h; if(!dlg.open) dlg.showModal();
+  dlg.innerHTML=h; document.getElementById("dclose").onclick=()=>dlg.close();
+  if(!dlg.open){ document.documentElement.style.overflow="hidden"; document.body.style.overflow="hidden"; dlg.showModal(); }
+  dlg.querySelector(".dbody").scrollTop=0;
 }
-document.getElementById("dlg").addEventListener("click",e=>{ if(e.target.id==="dlg") e.target.close(); });
 
 function renderDomains(){
   let h="";
   if(!D.domain_map) h=`<div class="hint">docs.domain_map 이 비어 있다. 도메인 지식을 적을 곳이 없어 에이전트가 코드만 보고 판단한다.</div>`;
   else if(!D.domains.length) h=`<div class="hint"><code>${esc(D.domain_map)}</code> 아래에 DOMAIN.md 가 아직 없다.</div>`;
-  else{ h=`<table><tr><th>도메인</th><th>절</th><th>시나리오</th></tr>`;
-    for(const d of D.domains) h+=`<tr><td><b>${esc(d.name)}</b></td><td>${d.sections.map(s=>`<span class="sec"><span class="dot d-${s.filled?"ok":"none"}"></span>${esc(s.name)}</span>`).join("")}</td><td>${D.coverage.includes(d.name)?"<span class='st-ok'>있음</span>":"<span class='st-no'>없음</span>"}</td></tr>`;
-    h+=`</table>`; }
+  else{ h=`<div class="tw"><table><tr><th>도메인</th><th>절</th><th>시나리오</th></tr>`;
+    for(const d of D.domains) h+=`<tr><td><b>${esc(d.name)}</b></td><td>${d.sections.map(s=>`<span class="sec"><span class="st s-${s.filled?"ok":"none"}"></span>${esc(s.name)}</span>`).join("")}</td><td>${D.coverage.includes(d.name)?"<span class='ok'>있음</span>":"<span class='no'>없음</span>"}</td></tr>`;
+    h+=`</table></div>`; }
   const miss=D.known_domains.filter(k=>!D.domains.some(d=>d.name===k));
   if(D.domain_map&&miss.length) h+=`<div class="hint">문서가 없는 도메인: ${esc(miss.join(", "))}</div>`;
   document.getElementById("domains").innerHTML=h;
@@ -422,9 +456,9 @@ function renderEmpties(){
     if(!seen.has(q.where)) seen.set(q.where,{where:q.where,ifempty:q.ifempty,agents:[]});
     const e=seen.get(q.where); if(!e.agents.includes(n)) e.agents.push(n); }
   if(!seen.size){ document.getElementById("empties").innerHTML=`<div class="hint">비어 있는 설정이 없다.</div>`; return; }
-  let h=`<table><tr><th>설정</th><th>쓰는 에이전트</th><th>안 채우면</th></tr>`;
+  let h=`<div class="tw"><table><tr><th>설정</th><th>쓰는 에이전트</th><th>안 채우면</th></tr>`;
   for(const e of seen.values()) h+=`<tr><td><code>${esc(e.where)}</code></td><td>${esc(e.agents.join(", "))}</td><td>${esc(e.ifempty)}</td></tr>`;
-  h+=`</table><div class="hint">채우려면 /setup 을 부르고 "비운 것만 채우기" 를 고른다.</div>`;
+  h+=`</table></div><div class="hint">채우려면 /setup 을 부르고 "비운 것만 채우기" 를 고른다.</div>`;
   document.getElementById("empties").innerHTML=h;
 }
 
