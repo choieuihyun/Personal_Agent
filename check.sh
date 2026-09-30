@@ -112,6 +112,11 @@ chk "결과 저장: 필수 키 누락은 거부" 1 "$?"
 chk "결과 저장: 거부하면 파일을 안 남긴다" "no" "$([ -e "$PROBE/c.json" ] && echo yes || echo no)"
 # 도구에 쓰기 권한이 없는 에이전트가 결과를 파일로 쓰라는 지시를 받으면 권한과 지시가 모순된다
 chk "쓰기 권한 없는 에이전트의 파일 저장 지시" 0 "$(for a in explorer builder verifier; do grep -lE 'Write 도구로 저장|json. 에 저장|\.json` 에 (성공 )?기록|json` 업데이트' core/agents/$a/AGENT.md; done 2>/dev/null | wc -l | tr -d ' ')"
+# core 는 어느 스택도 전제하지 않는다. 걷어 낸 스택 전용 표현이 다시 들어오면 잡는다.
+# 예시로 여러 스택을 나란히 드는 것은 괜찮다. 여기 적은 것은 한 스택을 전제로 한 문장에만 나오던 말이다.
+# 선택지로 보여 줄 것은 templates/choices.md 에 둔다.
+STACK_RESIDUE='MVVM|context7|패킷|주 스레드|fully qualified|app/src/main/java|github\.com/android|android-refs|Obsidian|PC-?Mobile|공유 이벤트|앱 실행|탭:|ui_observable|tap_element|주소록'
+chk "core 안 스택 전제 잔재" 0 "$(grep -rEo "$STACK_RESIDUE" core 2>/dev/null | wc -l | tr -d ' ')"
 echo "[7] 셸/파이썬 문법"
 for f in core/scripts/*.sh tools/*/*.sh ./*.sh; do bash -n "$f" 2>/dev/null || { echo "  FAIL $f"; fail=1; }; done
 # 셸에서 $VAR 뒤에 한글이 바로 붙으면 변수명의 일부로 파싱된다 ($n개 -> n개).

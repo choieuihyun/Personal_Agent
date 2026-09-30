@@ -34,9 +34,10 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 # 입력 (판단 근거)
 
-1. `<session_dir>/runner.json` - 재생 결과 (배포 성공 여부, 실패 시나리오, 실패 step, exit code, 스크린샷 경로)
-2. runner.json 의 screenshot_path - 실패 시점 화면 (Read 로 이미지 확인)
-3. `<session_dir>/orchestrator.json` - allowed_to_modify, 현재 step_id, 작업 대상 화면
+1. `<session_dir>/runner.json` - 재생 결과 (배포 성공 여부, 실패 시나리오, 실패 step, exit code, 산출물 경로)
+2. 실패 시점 산출물 - 화면이 있으면 screenshot_path 의 이미지, 없으면 JUnit 리포트의 실패 메시지(응답 본문, 출력)
+   screenshot_path 가 null 이면 이미지를 찾지 않는다. 없는 경로를 읽으려다 멈추지 않는다
+3. `<session_dir>/orchestrator.json` - allowed_to_modify, 현재 step_id, 작업 대상
 4. 필요 시 런타임 로그 - 크래시/예외 흔적 확인
 
 로그 수집 명령은 어댑터가 정한다. 명령을 여기 적어 두면 스택이 바뀔 때 못 쓴다.
@@ -53,27 +54,27 @@ eval "$(python3 "$REPO/.claude/scripts/harness_config.py" --export "$REPO")"
 각 분류의 판단 신호:
 
 **REAL_BUG (실제 동작 버그)**
-- install 성공 + 화면은 떴으나 기대 내용/상태가 없거나 틀림
-- 셀렉터는 정상인데 결과가 어긋남 (예: 탭을 눌렀는데 목록이 빔)
-- 마이그레이션 대상 화면에서 발생 (동작 보존 실패)
+- 배포 성공 + 대상은 응답했으나 기대 내용/상태가 없거나 틀림
+- 셀렉터나 요청은 정상인데 결과가 어긋남 (예: 버튼을 눌렀는데 목록이 빔, 추가 요청 뒤 조회 응답에 항목이 없음)
+- /modernize 중이면: 마이그레이션 대상에서 발생 (동작 보존 실패)
 - 재현성 있음
 
 **FLAKY (간헐 실패)**
-- 타이밍성 신호: timeout, 요소가 늦게 나타남, 애니메이션/로딩 지연
+- 타이밍성 신호: timeout, 요소나 응답이 늦게 옴, 애니메이션/로딩 지연
 - 같은 시나리오가 직전엔 통과했던 이력
 - 코드 결함이 아니라 대기 부족으로 보임
 
 **FLOW_ERROR (flow 자체 오류)**
-- 셀렉터(UI 식별자 또는 텍스트)가 화면에 아예 없음
+- 시나리오가 가리키는 대상(UI 식별자, 텍스트, 엔드포인트)이 아예 없음
 - 코드에는 해당 식별자가 있는데 시나리오가 다른 이름을 참조 (오타/불일치)
-- 시나리오의 단계 순서가 화면 흐름과 맞지 않음
+- 시나리오의 단계 순서가 실제 흐름과 맞지 않음
 - 코드는 정상, 시나리오가 틀림
 
-**ENV_STATE (기기/환경 상태)**
+**ENV_STATE (실행 환경 상태)**
 - 배포 실패 (install_success=false)
-- 인증 화면에서 멈춤 (자동 로그인 안 됨)
-- 권한 다이얼로그/시스템 팝업이 막음
-- 네트워크 없음, 실행 대상 잠금
+- 인증 단계에서 멈춤 (자동 로그인이나 토큰 발급이 안 됨)
+- 시스템이 끼어듦 (권한 다이얼로그, 팝업, 실행 대상 잠금)
+- 의존 서비스 미기동 (DB, 캐시, 외부 API), 포트 충돌, 네트워크 없음
 - 코드와 무관한 환경 문제
 
 # 분류 우선순위
@@ -105,7 +106,7 @@ confidence 가 LOW 이면 next_action 을 HUMAN_GATE 로 올린다.
 3. install_success=false 면 즉시 ENV_STATE 로 분류.
    replay_success=false 인데 report_found=false 면 시나리오가 아니라 러너 자체가 리포트를 쓰기 전에 죽은 것이다.
    failed_flow 가 비어 있으므로 시나리오 실패로 읽지 않는다. 런타임 로그로 원인을 보고 ENV_STATE 부터 의심한다
-4. screenshot_path 의 이미지를 Read 로 확인
+4. 실패 산출물 확인 (screenshot_path 가 있으면 이미지를 Read, 없으면 리포트의 실패 메시지)
 5. 필요 시 런타임 로그 조회로 크래시/예외 확인
 6. 우선순위(ENV_STATE→FLOW_ERROR→FLAKY→REAL_BUG)대로 배제하며 분류 확정
 7. REAL_BUG 면 suspected_files 채움 (allowed_to_modify 와 실패 화면 교차)

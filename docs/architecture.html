@@ -484,7 +484,7 @@ footer{margin-top:80px; padding-top:22px; border-top:1px solid var(--rule);
 <tbody>
 <tr><td class="mono">/modernize</td><td>수정 전 실제 동작</td><td>시간축 &mdash; 구현보다 먼저 쓴다</td><td><span class="tag t-stop">실패</span> 보존 검증이 목적</td></tr>
 <tr><td class="mono">/feature</td><td>동결된 수용조건</td><td>출처축 &mdash; 명세에서 쓴다</td><td><span class="tag t-read">조건부 통과</span> 비-UI 기능일 때만</td></tr>
-<tr><td class="mono">/fix</td><td>기존 flow 또는 신규</td><td>기회주의 &mdash; UI 버그일 때만</td><td><span class="tag t-read">조건부 통과</span> <code>ui_observable=false</code> 일 때만</td></tr>
+<tr><td class="mono">/fix</td><td>기존 flow 또는 신규</td><td>기회주의 &mdash; 시나리오로 관찰 가능한 버그일 때만</td><td><span class="tag t-read">조건부 통과</span> <code>runtime_observable=false</code> 일 때만</td></tr>
 </tbody>
 </table>
 </div>
@@ -698,7 +698,7 @@ footer{margin-top:80px; padding-top:22px; border-top:1px solid var(--rule);
       <text x="32" y="110">forbidden_rules</text>
       <text x="32" y="130">risk_flags</text>
       <text x="32" y="150">risk_level</text>
-      <text x="32" y="170">ui_observable</text>
+      <text x="32" y="170">runtime_observable</text>
       <text x="32" y="190">intake_mode</text>
     </g>
     <text x="32" y="214" font-size="9.5" fill="var(--faint)">explorer 제안 → 글롭 필터 → 확정</text>

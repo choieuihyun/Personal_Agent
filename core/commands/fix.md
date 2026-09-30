@@ -16,7 +16,7 @@
 유일한 예외는 종료 처리의 크래시 이슈 노트 한 줄이다.
 분기를 본문 중간으로 흘리면 오케스트레이터가 조건을 놓치므로, 새 모드를 추가할 때도 0단계에만 넣는다.
 
-런타임 게이트는 기회주의적이다. UI 로 관찰 가능한 버그일 때만 동작하고, 비-UI 버그는 NO_FLOW 로 통과한다.
+런타임 게이트는 기회주의적이다. 시나리오로 관찰 가능한 버그일 때만 동작하고, 그렇지 않은 버그는 NO_FLOW 로 통과한다.
 
 관련 커맨드와의 경계:
 - `/modernize` 는 수정 **전에** baseline flow 를 뜬다 (제어 흐름이 다름 → 별도 유지)
@@ -66,7 +66,7 @@ echo "[/fix] SESSION_DIR=${SESSION_DIR}"
   "risk_flags": [],
   "risk_level": "LOW",
   "human_gate_required": false,
-  "ui_observable": null,
+  "runtime_observable": null,
   "last_error_hash": null,
   "same_error_count": 0,
   "last_explorer_step": 0,
@@ -80,7 +80,7 @@ echo "[/fix] SESSION_DIR=${SESSION_DIR}"
 
 `${SESSION_DIR}/intake.json`:
 ```json
-{"mode": null, "summary": null, "error_lines": [], "suspected_files": [], "ui_observable": null,
+{"mode": null, "summary": null, "error_lines": [], "suspected_files": [], "runtime_observable": null,
  "issue_id": null, "title": null, "stack_trace": null, "crash_point": null,
  "app_version": null, "event_count": 0}
 ```
@@ -105,8 +105,8 @@ echo "[/fix] SESSION_DIR=${SESSION_DIR}"
 {"category": null, "confidence": null, "next_action": null, "suspected_files": []}
 ```
 
-`ui_observable` 주의: 이 값은 런타임 게이트의 오인 통과를 막는 근거다.
-버그가 화면에서 눈으로 확인 가능하면 true, 로직/파서/동기화처럼 화면 관찰이 불가능하면 false 다.
+`runtime_observable` 주의: 이 값은 런타임 게이트의 오인 통과를 막는 근거다.
+버그가 런타임 시나리오(화면 조작, API 호출, 명령 실행)로 확인 가능하면 true, 내부 로직처럼 시나리오로 닿지 않으면 false 다.
 0단계에서 채우고, 3.5단계 판단에서 사용한다.
 
 ---
@@ -160,7 +160,7 @@ $ARGUMENTS
 `intake.json` 을 채운다:
 - `mode`: "manual"
 - `summary`: 버그 설명 원문
-- `ui_observable`: 화면에서 눈으로 확인 가능한 버그면 true, 아니면 false
+- `runtime_observable`: 런타임 시나리오(화면 조작, API 호출, 명령 실행)로 확인 가능한 버그면 true, 아니면 false
   (판단이 애매하면 false 로 둔다. 게이트가 NO_FLOW 로 통과시키므로 막지 않는다)
 
 설명이 비어 있으면 사용자에게 무엇을 고칠지 묻고 대기한다.
@@ -183,7 +183,7 @@ session_dir: <SESSION_DIR>
   - `summary`: 에러 요약 첫 줄
   - `error_lines`: builder.json 의 raw_error_lines
   - `suspected_files`: builder.json 의 error_files (참고용)
-  - `ui_observable`: false (컴파일 에러는 화면 관찰 대상이 아니다)
+  - `runtime_observable`: false (컴파일 에러는 런타임 시나리오로 관찰할 대상이 아니다)
 
 ### 모드 C: crash (크래시 리포팅 연동)
 
@@ -235,13 +235,13 @@ events_tool             이벤트(스택트레이스) 조회 도구 이름
 - `summary`: 이슈 제목
 - `issue_id` / `title` / `stack_trace`(원문 전체) / `crash_point` / `app_version` / `event_count`
 - `suspected_files`: C-4 추출 결과
-- `ui_observable`: 크래시 지점이 화면 계층이면 true, 아니면 false
+- `runtime_observable`: 크래시 지점에 시나리오로 닿을 수 있으면(화면 계층, 요청 처리 경로) true, 아니면 false
 
 ---
 
 ## 1단계: 탐색 (EXPLORING)
 
-orchestrator.json 의 status 를 "EXPLORING" 으로, `ui_observable` 을 intake.json 값으로 업데이트한다.
+orchestrator.json 의 status 를 "EXPLORING" 으로, `runtime_observable` 을 intake.json 값으로 업데이트한다.
 
 **explorer 에이전트를 호출한다.**
 호출 프롬프트 상단에 반드시 다음 한 줄을 명시한다:
@@ -358,7 +358,7 @@ session_dir: <SESSION_DIR>
 ## 3.5단계: 런타임 게이트 (RUNTIME)
 
 빌드 성공 후 실행한다. 빌드 통과를 실제 화면 동작으로 검증한다 (수정 후 1회).
-`/fix` 는 비-UI 버그(로직/파서/동기화 등)도 다루므로 런타임 게이트는 기회주의적이다.
+`/fix` 는 시나리오로 닿지 않는 버그(내부 로직, 파서 등)도 다루므로 런타임 게이트는 기회주의적이다.
 UI 로 관찰 가능한 버그일 때만 의미가 있고, 아니면 NO_FLOW 로 통과시킨다 (막지 않는다).
 시나리오 작성 절차는 project.json 의 `docs.e2e_guide` 문서를 따른다 (없으면 기존 시나리오를 본떠 쓴다).
 
@@ -369,8 +369,8 @@ orchestrator.json status 를 "RUNTIME" 으로 업데이트한다.
 E2E 시나리오 디렉토리는 project.json 의 `e2e.dir` 이다.
 
 - 관련 시나리오가 이미 있으면 그대로 사용한다.
-- 없고 `ui_observable == true` 이고 재현율이 "항상" 이면 수정된 동작을 검증하는 시나리오를 작성한다.
-- `ui_observable == false` 이거나 재현율이 "가끔 / 특정 조건" 이면 만들지 않는다 (게이트는 NO_FLOW 로 통과).
+- 없고 `runtime_observable == true` 이고 재현율이 "항상" 이면 수정된 동작을 검증하는 시나리오를 작성한다.
+- `runtime_observable == false` 이거나 재현율이 "가끔 / 특정 조건" 이면 만들지 않는다 (게이트는 NO_FLOW 로 통과).
 
 수정 전 실패 증명은 강제하지 않는다. 버그 수정의 기준은 "수정 후 재현 불가 확인" 이기 때문이다.
 
@@ -400,8 +400,8 @@ bash .claude/scripts/runtime_gate.sh "${SESSION_DIR}" "" "$TAGS"
 |---|---|
 | gate_error != null | 게이트 자체가 못 돎 (설정 누락/경로 오설정/배포 실패). 통과 아님. 즉시 Human Gate |
 | skipped=true | SKIP. 사용자 보고 후 SUCCESS (기기 미연결) |
-| no_flow=true **이고 ui_observable=false** | 런타임 커버리지 없음. 보고 후 SUCCESS (비-UI 버그. 막지 않음) |
-| no_flow=true **이고 ui_observable=true** | **오인 통과.** 통과로 처리하지 않는다 (아래 참조) |
+| no_flow=true **이고 runtime_observable=false** | 런타임 커버리지 없음. 보고 후 SUCCESS (시나리오로 볼 수 없는 버그. 막지 않음) |
+| no_flow=true **이고 runtime_observable=true** | **오인 통과.** 통과로 처리하지 않는다 (아래 참조) |
 | replay_success=true | SUCCESS (수정 후 동작 검증됨) |
 | replay_success=false | triage 호출 (아래) |
 
@@ -413,7 +413,7 @@ UI 로 관찰 가능한 버그인데 `no_flow=true` 가 나왔다면 둘 중 하
 작성이 불가능한 사정이 있으면 SUCCESS 대신 사용자에게 보고하고 판단을 받는다.
 
 `no_flow` 의 의미는 커맨드마다 다르다. `/modernize` 는 보존 검증이 목적이라 실패로 보고,
-`/fix` 는 비-UI 버그일 때만 통과다. 위 표의 ui_observable 조건이 그 구분이다.
+`/fix` 는 시나리오로 볼 수 없는 버그일 때만 통과다. 위 표의 runtime_observable 조건이 그 구분이다.
 
 ### replay 실패 시 triage 호출
 

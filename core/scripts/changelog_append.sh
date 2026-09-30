@@ -19,7 +19,9 @@ CHANGELOG="$REPO/CHANGELOG.md"
 DATE=$(date +%Y-%m-%d)
 
 # 변경된 소스 파일 (경로 제거, 파일명만)
-FILES=$(git -C "$REPO" diff --name-only HEAD 2>/dev/null | grep -E '\.(java|kt|xml)$' | sed 's|.*/||' | sort -u)
+# 확장자로 거르지 않는다. 스택마다 소스 확장자가 달라서 목록을 박으면 그 스택 밖에서는 아무것도 안 남는다.
+# 하네스 자신의 파일(.claude/)과 문서(.md)만 뺀다.
+FILES=$(git -C "$REPO" diff --name-only HEAD 2>/dev/null | grep -vE '^\.claude/|\.md$' | sed 's|.*/||' | sort -u)
 [ -z "$FILES" ] && exit 0
 
 TOTAL=$(printf '%s\n' "$FILES" | wc -l | tr -d ' ')

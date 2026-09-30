@@ -8,7 +8,7 @@ fix/modernize 와 같은 하네스(세션 격리 + orchestrator.json + Human Gat
 DISCUSS -> SPEC -> PLAN -> PLAN-CHECK -> [필수 승인] -> EXPLORE -> IMPLEMENT -> (VERIFY + BUILD) -> 런타임 게이트 -> DOCUMENT
 
 이 커맨드의 핵심 차별점은 두 가지다:
-1. 프로젝트 도메인을 아는 기획 토론 (상태 동기화, 공유 이벤트, 외부 시스템 등 예외를 능동 제기)
+1. 프로젝트 도메인을 아는 기획 토론 (상태 동기화, 공유 상태 전파, 외부 시스템 등 예외를 능동 제기)
 2. SPEC 주도 런타임 게이트. 신규 기능은 보존할 과거 동작이 없으므로 E2E 시나리오를 구현이 아니라 구현 전 동결된 수용조건에서 만든다 (자기충족 함정 회피)
 
 ---
@@ -49,7 +49,7 @@ echo "[/feature] SESSION_DIR=${SESSION_DIR}"
   "allowed_to_modify": [],
   "allowed_to_create": [],
   "forbidden_rules": [
-    {"type": "glob", "value": "build.gradle"}
+    {"type": "glob", "value": "<project.json 의 forbidden_globs 를 그대로 옮긴다>"}
   ],
   "shared_event_gate": true,
   "risk_flags": [],
@@ -75,8 +75,8 @@ echo "[/feature] SESSION_DIR=${SESSION_DIR}"
 `${SESSION_DIR}/runner.json`: `{"skipped": null, "no_flow": null, "install_success": null, "replay_success": null, "failed_flow": null, "screenshot_path": null, "gate_error": null}`
 `${SESSION_DIR}/triage.json`: `{"category": null, "confidence": null, "next_action": null, "suspected_files": []}`
 
-forbidden_rules 주의: fix/modernize 와 달리 project.json 의 `risk_globs`(공유 이벤트 채널 등)를 하드 금지하지 않는다.
-신규 기능은 공유 이벤트를 추가할 수 있기 때문이다. 대신 shared_event_gate 로 다뤄 Human Gate 를 건다 (아래 5단계).
+forbidden_rules 주의: fix/modernize 와 달리 project.json 의 `risk_globs`(공유 상태 전파 경로 등)를 하드 금지하지 않는다.
+신규 기능은 새 신호(이벤트, 액션, 메시지)를 추가할 수 있기 때문이다. 대신 shared_event_gate 로 다뤄 Human Gate 를 건다 (아래 5단계).
 `forbidden_globs`(의존성/빌드 설정)는 그대로 하드 금지다.
 
 ---
@@ -146,7 +146,7 @@ orchestrator.json status 를 "SPEC" 으로 업데이트한다. spec_attempt 를 
 
 - acceptance_criteria 가 비어있으면 spec 재호출
 - open_questions 가 남아있으면 AskUserQuestion 으로 사용자에게 확인 후 spec 재호출
-- ui_observable=true 인 수용조건이 하나도 없으면 (순수 비-UI 기능) 그 사실을 기록한다.
+- runtime_observable=true 인 수용조건이 하나도 없으면 (시나리오로 관찰할 수 없는 기능) 그 사실을 기록한다.
   이 경우 뒤 런타임 게이트는 NO_FLOW 통과가 되며 보고에 명시된다
 
 ---
@@ -202,7 +202,7 @@ orchestrator.json status 를 "APPROVAL" 로 업데이트한다.
 - 수용조건 목록 (acceptance_criteria, UI 관찰가능/수동검증 구분)
 - 설계 요약 (plan.design_summary)
 - 신규 생성 파일(allowed_to_create)과 수정 후보(modify_hint)
-- 신규 공유 이벤트 여부, sync 설계 여부
+- 새 공유 신호 여부, sync 설계 여부
 - plan-check 의 PASS_WITH_NOTES 주의사항
 - risk_flags 와 risk_level
 
@@ -280,9 +280,9 @@ orchestrator.json status 를 "VERIFYING" 으로 업데이트한다.
 
 verifier 에게 전달 (신규 기능 모드 명시):
 - 신규 기능이므로 원본 비교(메서드/상수/필드 완전성) 항목은 건너뛴다
-- 신규 화면이 있으면 완료 기준(DoD) 검증(§5)만 적용한다 (project.json 의 dod_checks + docs.conventions)
-- 추가 검증: spec.json 의 ui_observable 수용조건 element 에 해당하는 UI 식별자가 실제 코드에 부여됐는지 (누락 시 MEDIUM). 이게 런타임 게이트의 전제다
-- 신규 화면이 없으면(비-UI 기능) DoD 검증은 건너뛰고 통과 처리
+- 완료 기준(DoD) 검증(§5)만 적용한다 (project.json 의 dod_checks + docs.conventions). 새 화면, 모듈, 엔드포인트 모두 대상이다
+- 추가 검증 (UI 가 있을 때): spec.json 의 runtime_observable 수용조건 element 에 해당하는 UI 식별자가 실제 코드에 부여됐는지 (누락 시 MEDIUM). 이게 런타임 게이트의 전제다
+- 이번 파일에 적용되는 완료 기준이 없으면 DoD 는 "해당 없음" 으로 보고한다 (통과로 세지 않는다)
 
 builder 에게 추가 전달 정보 없음 (session_dir 만으로 충분).
 
@@ -319,19 +319,19 @@ TAGS=$(python3 .claude/scripts/domains_for.py <allowed_to_create + allowed_to_mo
 ```
 
 시나리오 작성 규칙 (파일 형식과 문법은 project.json 의 `docs.e2e_guide` 와 기존 시나리오를 본뜬다):
-1. spec.json 의 ui_observable=true 이고 verify_manual=false 인 수용조건만 대상으로 한다
-2. 대상이 하나도 없으면(순수 비-UI 기능) 시나리오를 만들지 않고 NO_FLOW 로 처리한다 (아래 판단 참조)
+1. spec.json 의 runtime_observable=true 이고 verify_manual=false 인 수용조건만 대상으로 한다
+2. 대상이 하나도 없으면(시나리오로 관찰할 수 없는 기능) 시나리오를 만들지 않고 NO_FLOW 로 처리한다 (아래 판단 참조)
 3. 파일에 태그를 심는다. 태그는 위 TAGS 값이다.
    TAGS 가 "ALL"(도메인 규칙이 모르는 새 폴더이거나 공유 영역이라 특정 못함)이면
    plan.json 의 primary_domain 으로 태그한다.
    전체 회귀(ALL)에서는 어차피 이 시나리오도 포함되며, 태그를 달아두면 이후 표적 재생에서도 잡힌다.
    태그가 TAGS 와 어긋나면 태그 매칭에서 빠져 NO_FLOW 로 오인 통과하므로 절대 어긋나면 안 된다.
 4. 진입 프리앰블: spec.json 각 수용조건 e2e.entry 의 스텝을 그대로 쓴다.
-   entry 는 앱 실행(인증 전제는 `docs.e2e_guide` 참조) 뒤에
-   기존 화면의 텍스트 셀렉터 네비게이션으로 given 상태까지 도달한다.
+   entry 의 `진입`, `준비`, `조작` 스텝을 시나리오 도구의 문법으로 옮긴다 (인증 전제는 `docs.e2e_guide` 참조).
+   UI 가 있으면 기존 화면의 텍스트 셀렉터 네비게이션으로 given 상태까지 도달한다.
    entry 가 없으면 첫 조작에서 죽으므로, spec 에 entry 가 비어있으면 spec 을 재호출해 채운다
-5. 본문: e2e.tap_element / assert_element 는 plan.json 의 test_id_map 값을 식별자 셀렉터로 변환한다.
-   assert_text 는 노출 텍스트 그대로 검증한다
+5. 본문: UI 면 e2e.act_element / assert_element 를 plan.json 의 test_id_map 값으로 식별자 셀렉터로 바꾼다.
+   UI 가 없으면 surface 와 element 를 요청이나 명령으로 바꾼다. assert_text 는 그 값 그대로 검증한다
 6. `<e2e.dir>/<주 도메인>/<feature_title 슬러그>` 로 저장한다 (하위 폴더까지 재귀 수집된다)
 
 생성 시나리오의 뼈대 (실제 문법은 스택마다 다르다):
@@ -339,11 +339,11 @@ TAGS=$(python3 .claude/scripts/domains_for.py <allowed_to_create + allowed_to_mo
 ```
 태그: <TAGS 또는 primary_domain>
 ---
-앱 실행
-텍스트 셀렉터로 given 화면까지 이동
-식별자 셀렉터로 대상 요소 조작   (test_id_map)
-식별자 셀렉터로 결과 요소 검증   (assert_element)
-노출 텍스트 검증                 (assert_text)
+진입                              (entry 의 진입, 준비)
+given 상태까지 이동               (entry 의 조작)
+대상 조작                         (act_element. UI 면 test_id_map 의 식별자)
+결과 확인                         (assert_element)
+값 검증                           (assert_text)
 ```
 
 ### 게이트 실행
@@ -366,15 +366,15 @@ bash .claude/scripts/runtime_gate.sh "${SESSION_DIR}" "" "$TAGS"
 |---|---|
 | gate_error != null | 게이트 자체가 못 돎 (경로 오설정/install 실패). 통과 아님. 즉시 Human Gate |
 | skipped=true | SKIP. 사용자 보고 후 8단계로 (기기 미연결) |
-| no_flow=true (UI 수용조건 없음) | 비-UI 기능. 보고 후 8단계로 (수동 검증 항목은 verify_manual 로 남음) |
-| no_flow=true (UI 수용조건 있음) | 오인 통과. 통과로 처리하지 않는다. 태그 불일치 버그이므로 7.5 시나리오 생성으로 복귀 |
+| no_flow=true (관찰 가능 수용조건 없음) | 시나리오로 볼 수 없는 기능. 보고 후 8단계로 (수동 검증 항목은 verify_manual 로 남음) |
+| no_flow=true (관찰 가능 수용조건 있음) | 오인 통과. 통과로 처리하지 않는다. 태그 불일치 버그이므로 7.5 시나리오 생성으로 복귀 |
 | replay_success=true | 8단계로 (수용조건 동작 검증됨) |
 | replay_success=false | triage 호출 (아래) |
 
 핵심 구분: modernize 는 no_flow 를 실패로 봤지만(보존 검증이 목적), feature 의 no_flow 는
-"검증할 UI 수용조건이 애초에 없음(비-UI)" 일 때만 통과다.
-반드시 spec.json 에 ui_observable=true 수용조건이 있는지 먼저 확인한다.
-UI 수용조건이 있는데도 no_flow=true 라면 시나리오 태그가 TAGS 와 어긋나 매칭 0이 된 것이다 (오인 통과).
+"검증할 관찰 가능 수용조건이 애초에 없음" 일 때만 통과다.
+반드시 spec.json 에 runtime_observable=true 수용조건이 있는지 먼저 확인한다.
+관찰 가능 수용조건이 있는데도 no_flow=true 라면 시나리오 태그가 TAGS 와 어긋나 매칭 0이 된 것이다 (오인 통과).
 이 경우 통과시키지 말고 7.5 시나리오 생성으로 돌아가 태그를 TAGS 와 일치시킨다.
 이것이 이 게이트가 조용히 초록불만 켜는 것을 막는 핵심 방어다.
 
@@ -447,8 +447,8 @@ human_gate_required 가 true 가 된 상황:
 - 생성/수정된 파일 목록
 - 빌드 성공 확인
 - 런타임 게이트 결과 (통과 / SKIP / NO_FLOW 중 무엇인지 명시)
-- 수동 검증 항목(verify_manual=true 수용조건, 예: PC-Mobile sync) 목록을 사용자에게 남긴다
-- documenter 결과 (DOMAIN.md 생성/갱신, Obsidian 동기화 여부)
+- 수동 검증 항목(verify_manual=true 수용조건, 예: 두 기기 간 동기화) 목록을 사용자에게 남긴다
+- documenter 결과 (DOMAIN.md 생성/갱신, 노트 앱 동기화 여부)
 
 ### 실패 (FAILED_*)
 orchestrator.json termination_reason 을 업데이트하고 보고한다:

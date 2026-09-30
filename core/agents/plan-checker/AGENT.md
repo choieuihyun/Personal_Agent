@@ -40,9 +40,11 @@ ERROR: session_dir 인자 누락. 호출자가 session_dir 을 프롬프트에 �
 
 ## 2. UI 식별자 계약 완전성 (필수)
 
-- ui_observable=true 인 모든 수용조건의 tap_element / assert_element 가 plan.json 의 test_id_map 에 매핑돼 있는가
+- runtime_observable=true 인 모든 수용조건의 act_element / assert_element 가 plan.json 의 test_id_map 에 매핑돼 있는가
 - 누락 시 MISSING_TEST_ID (HIGH). 이게 빠지면 런타임 게이트가 요소를 못 찾아 무력화된다
-- 식별자 속성 이름은 project.json 의 `ui_test_id` 가 정한다 (없으면 이 항목은 건너뛴다)
+- 식별자 속성 이름은 project.json 의 `ui_test_id` 가 정한다
+- UI 가 없는 프로젝트(`project.has_ui` 가 false)면 이 항목은 해당 없다.
+- UI 가 있는데 `ui_test_id` 가 비어 있으면 건너뛰지 않는다. 셀렉터 계약을 검증할 근거가 없다는 것 자체를 finding 으로 남긴다 (MISSING_TEST_ID, MEDIUM)
 
 ## 3. 도메인 정합성 (discuss.json domain_flags 대조)
 

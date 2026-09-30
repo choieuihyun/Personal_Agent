@@ -141,7 +141,7 @@ def main():
     # 단 게이트 자체가 실패한 경우(gate_error) 나 install 이 깨진 경우는 여기 해당하지 않는다.
     # 그때까지 no_flow 로 덮으면 "커버리지 없음(=통과)" 으로 오인돼 실패가 조용히 묻힌다.
     # 재생이 실패한 경우(replay_success=false)도 마찬가지다. 러너가 리포트를 쓰기 전에 죽으면
-    # testcase 가 0개로 읽히는데, 이걸 no_flow 로 덮으면 비-UI 버그 경로에서 SUCCESS 가 된다.
+    # testcase 가 0개로 읽히는데, 이걸 no_flow 로 덮으면 시나리오로 볼 수 없는 버그의 경로에서 SUCCESS 가 된다.
     if (
         not skipped
         and gate_error is None

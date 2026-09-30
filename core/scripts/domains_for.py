@@ -17,7 +17,7 @@
 #               shared 에 있으면 공유 코드이므로 ALL. known 이 비어 있지 않은데 거기 없으면 ALL.
 #
 #   prefix_rules  폴더로 안 나뉜 평평한 파일은 파일명 접두사가 도메인을 가리킨다.
-#               {"under": "src/screens", "map": {"ChatRoom": "chatroom", "ChatList": "chatlist"}}
+#               {"under": "src/pages", "map": {"OrderList": "order", "OrderDetail": "order", "Cart": "cart"}}
 #               긴 접두사를 먼저 맞춘다. 짧은 접두사가 긴 것을 가로채면 엉뚱한 도메인이 나온다.
 #
 # 확실한 것만 넣는다. 애매하면 넣지 않고 ALL 로 두는 편이 낫다.

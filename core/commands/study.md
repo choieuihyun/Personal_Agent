@@ -46,7 +46,7 @@ done
 
 1. `mkdir -p <docs.study_dir>` (폴더가 없을 수 있다)
 2. 에이전트 보고를 `<docs.study_dir>/<YYYYMMDD>_<주제>.md` 로 저장
-3. `docs.vault_prefix` 가 설정돼 있으면 노트 앱 MCP 로 `<docs.vault_prefix>/<같은 경로>` 에 동기화
+3. `docs.vault_prefix` 가 설정돼 있으면 연결된 노트 앱 도구로 `<docs.vault_prefix>/<같은 경로>` 에 동기화
 4. `docs.study_dir` 이 비어 있으면 파일을 만들지 않고 그 사실을 보고한다 (임의 경로에 쓰지 않는다)
 
 `--note` 없으면 터미널 출력만 하고 파일을 만들지 않는다.
