@@ -157,6 +157,16 @@ chk "재설치: 도구 연결 유지" 1 "$(grep -c '^tools:.*mcp__docs__query' "
 mkdir -p "$I/.claude/agents/researcher"; echo old > "$I/.claude/commands/modernize.md"; echo old > "$I/.claude/agents/researcher/AGENT.md"
 bash install.sh "$I" >/dev/null 2>&1
 chk "재설치: 은퇴한 파일 정리" "0 gone" "$? $([ -e "$I/.claude/commands/modernize.md" ] || [ -e "$I/.claude/agents/researcher" ] && echo left || echo gone)"
+# 업그레이드: 하네스만 갱신된 파일은 멈추지 않고 갱신하고, 대상에서 직접 고친 파일에서만 멈춘다.
+# 예전 버전 설치본을 흉내 낸다: 대상 파일을 다르게 두고 그 상태를 설치 기록으로 남긴다.
+echo "old version" > "$I/.claude/commands/fix.md"
+python3 core/scripts/harness_manifest.py write "$I/.claude" agents commands scripts setup adapters templates
+bash install.sh "$I" >/dev/null 2>&1
+chk "업그레이드: 하네스만 바뀐 파일은 멈추지 않고 갱신" "0 same" "$? $(cmp -s "$I/.claude/commands/fix.md" core/commands/fix.md && echo same || echo diff)"
+echo "local edit" >> "$I/.claude/commands/feature.md"
+out=$(bash install.sh "$I" 2>&1); code=$?
+chk "업그레이드: 대상에서 고친 파일에서는 멈춤" "1 1" "$code $(printf '%s' "$out" | grep -c 'commands/feature.md')"
+bash install.sh "$I" --force >/dev/null 2>&1
 # 에이전트마다 붙일 MCP 안내가 있어야 /setup 이 에이전트 차례에 물을 수 있다
 chk "MCP 안내 없는 설명서" 0 "$(grep -L '^mcp:' core/setup/*.md | wc -l | tr -d ' ')"
 # 은퇴한 커맨드를 부르거나 가리키는 곳이 남으면 없는 에이전트를 부른다

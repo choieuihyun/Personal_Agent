@@ -53,45 +53,47 @@ say() { [ "$DRY" = "1" ] && echo "  (dry-run) $*" || echo "  $*"; }
 # setup 은 /setup 이 읽는 에이전트별 세팅 설명서, templates 는 선택지 목록과 문서 뼈대다.
 PAIRS="core/agents:agents core/commands:commands core/scripts:scripts core/setup:setup adapters:adapters templates:templates"
 
-# 0. 하네스에서 은퇴한 파일. 예전에 설치된 대상에 남아 있으면 지운다.
-# 지우지 않으면 아래 검사가 "하네스에 없는 파일" 로 보고 멈추고, 남은 커맨드는 없는 에이전트를 부른다.
-# 대상에서 고친 흔적이 있어도 지운다. 은퇴한 것은 하네스가 더 이상 책임지지 않는다. 지운 목록은 보여 준다.
+# 은퇴한 파일: 하네스에서 없앤 것. 예전에 설치된 대상에 남아 있으면 복사 전에 지운다.
+# 남겨 두면 없는 에이전트를 부르는 커맨드가 남는다. 은퇴한 것은 하네스가 더 이상 책임지지 않으므로
+# 대상에서 고친 흔적이 있어도 지우고, 지운 목록은 보여 준다.
 RETIRED="commands/modernize.md commands/log.md scripts/changelog_append.sh agents/implementer-modernize agents/researcher setup/implementer-modernize.md setup/researcher.md"
+
+# 1. 대상에서 고친 파일 찾기 (덮으면 사라지는 것)
+# 기준은 "지금의 하네스 원본" 이 아니라 "그때 설치한 것" 이다 (.claude/.harness-manifest).
+# 원본과 비교하면 하네스가 갱신된 파일까지 고친 파일로 잡혀, 업그레이드할 때마다 멈춘다.
+# 기록이 없는 예전 설치본만 원본과 비교한다.
+CHANGED=""
+NO_MANIFEST=0
+if [ -d "$DEST" ]; then
+  while IFS= read -r line; do
+    [ "$line" = "#NO_MANIFEST" ] && { NO_MANIFEST=1; continue; }
+    skip=0
+    for r in $RETIRED; do case "$line" in "$r"|"$r"/*|"$r "*) skip=1 ;; esac; done
+    [ "$skip" = "1" ] || CHANGED="$CHANGED\n  $line"
+  done < <(python3 "$HARNESS/core/scripts/harness_manifest.py" changed "$DEST" "$HARNESS" $PAIRS)
+fi
+
+if [ -n "$CHANGED" ] && [ "$FORCE" = "0" ]; then
+  echo "멈춤: 설치한 뒤 대상에서 고친 파일이 있다. 덮으면 이 수정은 사라진다."
+  printf "%b\n" "$CHANGED"
+  echo
+  if [ "$NO_MANIFEST" = "1" ]; then
+    echo "주의: 설치 기록(.claude/.harness-manifest)이 없는 예전 설치본이라 지금의 하네스 원본과 비교했다."
+    echo "      하네스가 갱신한 파일도 위에 섞여 있다. 대상에서 직접 고친 적이 없으면 --force 로 진행해도 된다."
+    echo "      이번 설치부터 기록이 남아 다음에는 실제로 고친 파일만 보인다."
+  else
+    echo "여기서 고친 것이면 하네스로 먼저 옮긴다 (역수출). 그 뒤에 다시 설치한다."
+    echo "그냥 덮어도 되면 --force 를 준다."
+  fi
+  exit 1
+fi
+
 for r in $RETIRED; do
   if [ -e "$DEST/$r" ]; then
     say "은퇴: $r 제거"
     [ "$DRY" = "0" ] && rm -rf "${DEST:?}/$r"
   fi
 done
-
-# 1. 대상에서 고친 파일 찾기 (덮으면 사라지는 것)
-CHANGED=""
-for pair in $PAIRS; do
-  src="$HARNESS/${pair%%:*}"
-  dst="$DEST/${pair##*:}"
-  [ -d "$dst" ] || continue
-  while IFS= read -r f; do
-    rel="${f#$dst/}"
-    [ -f "$src/$rel" ] || { CHANGED="$CHANGED\n  ${pair##*:}/$rel (하네스에 없는 파일)"; continue; }
-    # 에이전트의 tools 줄은 /setup 이 붙인 외부 도구(agent_tools)가 반영된 자리라 비교에서 뺀다.
-    # 설치 뒤 apply_agent_tools.py 가 다시 반영하므로 사라지지 않는다.
-    if [[ "$rel" == */AGENT.md ]]; then
-      diff -q <(grep -vE '^tools(_extra)?:' "$f") <(grep -vE '^tools(_extra)?:' "$src/$rel") >/dev/null \
-        || CHANGED="$CHANGED\n  ${pair##*:}/$rel"
-    else
-      cmp -s "$f" "$src/$rel" || CHANGED="$CHANGED\n  ${pair##*:}/$rel"
-    fi
-  done < <(find "$dst" -type f \( -name '*.md' -o -name '*.py' -o -name '*.sh' -o -name '*.json' -o -name '*.tmpl' \) 2>/dev/null)
-done
-
-if [ -n "$CHANGED" ] && [ "$FORCE" = "0" ]; then
-  echo "멈춤: 대상에서 하네스 원본과 다른 파일이 있다. 덮으면 이 수정은 사라진다."
-  printf "%b\n" "$CHANGED"
-  echo
-  echo "여기서 고친 것이면 하네스로 먼저 옮긴다 (역수출). 그 뒤에 다시 설치한다."
-  echo "그냥 덮어도 되면 --force 를 준다."
-  exit 1
-fi
 
 # 2. 복사
 echo "설치: $HARNESS -> $DEST"
@@ -132,24 +134,32 @@ done
 
 [ "$DRY" = "1" ] && { echo; echo "dry-run 이므로 아무것도 쓰지 않았다."; exit 0; }
 
+# 설치 기록. 다음 재설치 때 "대상에서 고친 파일" 을 가리는 기준이다.
+python3 "$HARNESS/core/scripts/harness_manifest.py" write "$DEST" $(for p in $PAIRS; do printf '%s ' "${p##*:}"; done)
+
 # 세팅 때 붙인 외부 도구를 다시 반영한다. 복사가 tools 줄을 원본으로 되돌렸기 때문이다.
 (cd "$TARGET" && python3 .claude/scripts/apply_agent_tools.py >/dev/null 2>&1) || echo "  주의: agent_tools 반영 실패 (python3 .claude/scripts/apply_agent_tools.py 로 확인)"
 
 # 5. 설치 직후 상태를 스스로 확인해서 보여준다
+# 설정을 읽을 수 있는지만 본다. 게이트를 실제로 돌리지 않는다.
+# 설정이 채워진 프로젝트에서 게이트를 돌리면 서버를 띄우고 테스트를 실행한다. 설치가 할 일이 아니다.
 echo
 echo "확인:"
-DOM=$(cd "$TARGET" && python3 .claude/scripts/domains_for.py src/x.txt 2>/dev/null)
-echo "  도메인 매핑    $DOM $([ "$DOM" = "ALL" ] && echo '(아직 규칙 없음 = 매번 전체 회귀)')"
-# 진짜 세션과 같은 깊이에 둔다. 메트릭 기록기가 세션 경로 기준으로 출력 위치를 잡기 때문에
-# 얕은 경로로 재보면 .claude/ 에 파일이 흘러나온다.
-(cd "$TARGET" && bash .claude/scripts/runtime_gate.sh .claude/state/sessions/_probe "" >/dev/null 2>&1)
-case "$?" in
-  0) echo "  런타임 게이트  통과 또는 SKIP" ;;
-  3) echo "  런타임 게이트  exit 3 (설정 필요. 통과가 아니다)" ;;
-  *) echo "  런타임 게이트  exit $?" ;;
+CFG=$(cd "$TARGET" && python3 .claude/scripts/harness_config.py --export 2>/dev/null)
+HC_OK=$(printf '%s\n' "$CFG" | sed -n 's/^HC_OK=//p' | tr -d "'")
+MISS=$(printf '%s\n' "$CFG" | sed -n 's/^HC_MISSING=//p' | tr -d "'")
+case "$HC_OK" in
+  1) echo "  설정           읽힘 (게이트 사용)${MISS:+. 안 채운 빈칸: $MISS}" ;;
+  2) echo "  설정           읽힘 (게이트 끔)" ;;
+  *) echo "  설정           아직 비어 있음. /setup 으로 채운다 (이 상태로는 게이트가 exit 3 으로 멈춘다)" ;;
 esac
-rm -rf "$TARGET/.claude/state/sessions/_probe"
+DOM=$(cd "$TARGET" && python3 .claude/scripts/domains_for.py --self-check 2>/dev/null | head -1)
+echo "  도메인 규칙    ${DOM:-확인 불가}"
 
 echo
-echo "다음: 이 프로젝트에서 Claude Code 를 열고 /setup 을 실행한다."
-echo "      에이전트를 하나씩 소개하며 설정, 도메인 지식, 에이전트별 사정을 대화로 채운다."
+if [ "$HC_OK" = "1" ] || [ "$HC_OK" = "2" ]; then
+  echo "다음: 바로 /fix, /feature 를 쓸 수 있다. 세팅을 바꾸거나 빈칸을 채우려면 /setup."
+else
+  echo "다음: 이 프로젝트에서 Claude Code 를 열고 /setup 을 실행한다."
+  echo "      에이전트를 하나씩 소개하며 설정, 도메인 지식, 에이전트별 사정을 대화로 채운다."
+fi
